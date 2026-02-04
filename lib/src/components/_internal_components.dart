@@ -517,6 +517,10 @@ class EventGenerator<T extends Object?> extends StatelessWidget {
             events[index].startDuration,
             events[index].endDuration,
           );
+            final tileWidth =
+              width - events[index].right - events[index].left;
+            final tileHeight =
+              height - events[index].bottom - events[index].top;
 
           // Make event tiles draggable. Using Draggable so drag starts on
           // pointer movement (faster activation than long-press).
@@ -528,10 +532,9 @@ class EventGenerator<T extends Object?> extends StatelessWidget {
             },
             feedback: Material(
               color: Colors.transparent,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: width - events[index].right - events[index].left,
-                ),
+              child: SizedBox(
+                width: tileWidth,
+                height: tileHeight,
                 child: tile,
               ),
             ),

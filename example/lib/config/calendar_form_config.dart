@@ -72,6 +72,7 @@ class ViewSelectorStyle {
   final EdgeInsets padding;
   final Color? activeColor;
   final Color? inactiveColor;
+  final ViewSelectorPosition position;
 
   const ViewSelectorStyle({
     this.iconSize = 18,
@@ -80,7 +81,13 @@ class ViewSelectorStyle {
     this.padding = const EdgeInsets.only(top: 6),
     this.activeColor,
     this.inactiveColor,
+    this.position = ViewSelectorPosition.right,
   });
+}
+
+enum ViewSelectorPosition {
+  left,
+  right,
 }
 
 class ViewSelectorConfig {

@@ -150,6 +150,9 @@ class CalendarViews extends StatelessWidget {
               )
             : SizedBox.shrink());
 
+    final isRightPosition =
+      selectorStyle.position == ViewSelectorPosition.right;
+
     return Stack(
       children: [
         Container(
@@ -168,11 +171,14 @@ class CalendarViews extends StatelessWidget {
         ),
         if (config.showViewSelector)
           Positioned(
-            right: 8,
+            right: isRightPosition ? 8 : null,
+            left: isRightPosition ? null : 8,
             child: IgnorePointer(
               ignoring: false,
               child: Padding(
-                padding: EdgeInsets.only(right: 20, top: 5),
+                padding: isRightPosition
+                    ? EdgeInsets.only(right: 20, top: 5)
+                    : EdgeInsets.only(left: 20, top: 5),
                 child: viewSelectorWidget,
               ),
             ),
