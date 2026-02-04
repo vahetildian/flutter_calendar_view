@@ -2,6 +2,8 @@
 // Use of this source code is governed by a MIT-style license
 // that can be found in the LICENSE file.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../calendar_view.dart';
@@ -662,6 +664,7 @@ class _MonthPageBuilder<T> extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  @override
   Widget build(BuildContext context) {
     final monthDays = date.datesOfMonths(
       startDay: startDay,
@@ -688,27 +691,170 @@ class _MonthPageBuilder<T> extends StatelessWidget {
               hideDaysNotInMonth && (monthDays[index].month != date.month)
                   ? <CalendarEventData<T>>[]
                   : controller.getEventsOnDay(monthDays[index]);
-          return GestureDetector(
-            onTap: () => onCellTap?.call(events, monthDays[index]),
-            onLongPress: () => onDateLongPress?.call(monthDays[index]),
-            child: Container(
-              decoration: BoxDecoration(
-                border: showBorder
-                    ? Border.all(
-                        color: borderColor ??
-                            context.monthViewColors.cellBorderColor,
-                        width: borderSize,
-                      )
-                    : null,
-              ),
-              child: cellBuilder(
-                monthDays[index],
-                events,
-                monthDays[index].compareWithoutTime(DateTime.now()),
-                monthDays[index].month == date.month,
-                hideDaysNotInMonth,
-              ),
+          final cellContent = Container(
+            decoration: BoxDecoration(
+              border: showBorder
+                  ? Border.all(
+                      color: borderColor ??
+                          context.monthViewColors.cellBorderColor,
+                      width: borderSize,
+                    )
+                  : null,
             ),
+            child: cellBuilder(
+              monthDays[index],
+              events,
+              monthDays[index].compareWithoutTime(DateTime.now()),
+              monthDays[index].month == date.month,
+              hideDaysNotInMonth,
+            ),
+          );
+
+          return Stack(
+            children: [
+              cellContent,
+              Positioned.fill(
+                child: DragTarget<Map<String, dynamic>>(
+                  builder: (context, candidateData, rejectedData) {
+                    // If there's drag in progress, show drop target preview
+                    if (candidateData.isNotEmpty) {
+                      return Container(
+                        color: Colors.blue.withOpacity(0.1),
+                      );
+                    }
+                    return const SizedBox.expand();
+                  },
+                  onWillAcceptWithDetails: (details) {
+                    final hasEvent = details.data.containsKey('event');
+                    return hasEvent;
+                  },
+                  onAcceptWithDetails: (details) {
+                    final payload = details.data;
+                    final oldEvent =
+                        payload['event'] as CalendarEventData<T>;
+                    final originalStart = payload['start'] as DateTime?;
+                    final originalEnd = payload['end'] as DateTime?;
+
+                    final droppedDate = monthDays[index];
+                    
+                    // Simple approach: just update the event date directly
+                    if (oldEvent.isRecurringEvent) {
+                      // Preserve the day span if multi-day
+                      final DateTime newEventEndDate;
+                      if (oldEvent.endDate != oldEvent.date) {
+                        // Multi-day recurring event - preserve day span
+                        final daySpan = oldEvent.endDate.difference(oldEvent.date).inDays;
+                        newEventEndDate = droppedDate.withoutTime.add(Duration(days: daySpan));
+                      } else {
+                        // Single-day recurring event - endDate equals date
+                        newEventEndDate = droppedDate.withoutTime;
+                      }
+
+                      // Update the recurrence settings to start from the new date
+                      final oldStartDate = oldEvent.date.withoutTime;
+                      final newStartDate = droppedDate.withoutTime;
+                      final startDateDelta = newStartDate.difference(oldStartDate);
+                      final oldRecurrenceEndDate =
+                          oldEvent.recurrenceSettings?.endDate?.withoutTime;
+                      final newRecurrenceEndDate = oldRecurrenceEndDate == null
+                          ? null
+                          : oldRecurrenceEndDate.add(startDateDelta);
+
+                      final updatedRecurrenceSettings =
+                          oldEvent.recurrenceSettings?.copyWith(
+                        startDate: newStartDate,
+                        endDate: newRecurrenceEndDate,
+                      );
+                      
+                      final updatedEvent = oldEvent.copyWith(
+                        date: droppedDate.withoutTime,
+                        endDate: newEventEndDate,
+                        recurrenceSettings: updatedRecurrenceSettings,
+                      );
+                      
+                      controller.remove(oldEvent);
+                      controller.add(updatedEvent);
+                    } else {
+                      // Non-recurring event: update in-place
+                      
+                      // Compute new endDate: single-day events should have endDate == date,
+                      // multi-day events should preserve their day span
+                      final DateTime newEndDate;
+                      if (oldEvent.endDate != oldEvent.date) {
+                        // Multi-day event - preserve day span
+                        final daySpan =
+                            oldEvent.endDate.difference(oldEvent.date).inDays;
+                        newEndDate = DateTime(
+                          droppedDate.year,
+                          droppedDate.month,
+                          droppedDate.day,
+                        ).add(Duration(days: daySpan));
+                      } else {
+                        // Single-day event - ensure endDate equals date
+                        newEndDate = droppedDate.withoutTime;
+                      }
+
+                      // For timed events, preserve duration; for full-day, preserve null times
+                      if (originalStart != null && originalEnd != null) {
+                        // Timed event - compute new start/end preserving duration
+                        final newStart = DateTime(
+                          droppedDate.year,
+                          droppedDate.month,
+                          droppedDate.day,
+                          originalStart.hour,
+                          originalStart.minute,
+                        );
+                        final duration =
+                            originalEnd.difference(originalStart);
+                        final newEnd = newStart.add(duration);
+
+                        final updated = oldEvent.copyWith(
+                          date: droppedDate.withoutTime,
+                          startTime: newStart,
+                          endTime: newEnd,
+                          endDate: newEndDate,
+                        );
+                        controller.update(oldEvent, updated);
+                      } else {
+                        // Full-day event - only update date/endDate, leave times null
+                        final updated = oldEvent.copyWith(
+                          date: droppedDate.withoutTime,
+                          endDate: newEndDate,
+                        );
+                        controller.update(oldEvent, updated);
+                      }
+                    }
+                  },
+                ),
+              ),
+              Positioned.fill(
+                child: Builder(builder: (context) {
+                  Offset? tapDownPosition;
+                  const maxMoveDistance = 6.0;
+                  return GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTapDown: (details) {
+                      tapDownPosition = details.localPosition;
+                    },
+                    onTapUp: (details) {
+                      if (tapDownPosition == null) return;
+                      final moved =
+                          (details.localPosition - tapDownPosition!).distance;
+                      if (moved > maxMoveDistance) return;
+                      if (onDateLongPress != null) {
+                        onDateLongPress?.call(monthDays[index]);
+                      } else {
+                        onCellTap?.call(events, monthDays[index]);
+                      }
+                    },
+                    onTapCancel: () {
+                      tapDownPosition = null;
+                    },
+                    child: SizedBox.expand(),
+                  );
+                }),
+              ),
+            ],
           );
         },
       ),

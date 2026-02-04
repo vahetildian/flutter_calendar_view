@@ -5,6 +5,7 @@ import '../../localization/locale_controller.dart';
 import '../day_view_page.dart';
 import '../month_view_page.dart';
 import '../multi_day_view_page.dart';
+import '../settings_page.dart';
 import '../week_view_page.dart';
 
 class MobileHomePage extends StatefulWidget {
@@ -139,6 +140,12 @@ class _MobileHomePageState extends State<MobileHomePage> {
             },
           ),
           SizedBox(width: 16),
+              FloatingActionButton(
+                heroTag: null,
+                child: Icon(Icons.settings, color: context.appColors.onPrimary),
+                onPressed: () => context.pushRoute(SettingsPage()),
+              ),
+              SizedBox(width: 16),
           FloatingActionButton(
             heroTag: null,
             child: Icon(Icons.language, color: context.appColors.onPrimary),

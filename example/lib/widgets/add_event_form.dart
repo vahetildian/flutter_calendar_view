@@ -2,6 +2,7 @@ import 'package:calendar_view/calendar_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
+import '../config/calendar_form_config.dart';
 import '../constants.dart';
 import '../extension.dart';
 import '../l10n/app_localizations.dart';
@@ -12,8 +13,9 @@ import 'date_time_selector.dart';
 class AddOrEditEventForm extends StatefulWidget {
   final void Function(CalendarEventData)? onEventAdd;
   final CalendarEventData? event;
+  final DateTime? initialDateTime;
 
-  const AddOrEditEventForm({super.key, this.onEventAdd, this.event});
+  const AddOrEditEventForm({super.key, this.onEventAdd, this.event, this.initialDateTime});
 
   @override
   _AddOrEditEventFormState createState() => _AddOrEditEventFormState();
@@ -286,10 +288,11 @@ class _AddOrEditEventFormState extends State<AddOrEditEventForm> {
             maxLines: 10,
             maxLength: 1000,
             validator: (value) {
-              if (value == null || value.trim() == "") {
+              final config = CalendarConfigurationProvider.of(context);
+              if (config.isDescriptionRequired &&
+                  (value == null || value.trim() == "")) {
                 return translate.pleaseEnterEventDescription;
               }
-
               return null;
             },
             decoration: InputDecoration(
@@ -628,6 +631,14 @@ class _AddOrEditEventFormState extends State<AddOrEditEventForm> {
 
   void _setDefaults() {
     if (widget.event == null) {
+      // If initialDateTime is provided, set start and end date/time from it
+      if (widget.initialDateTime != null) {
+        _startDate = widget.initialDateTime!.withoutTime;
+        _endDate = widget.initialDateTime!.withoutTime;
+        _startTime = widget.initialDateTime;
+        // Set end time to 1 hour after start time
+        _endTime = widget.initialDateTime!.add(Duration(hours: 1));
+      }
       _setInitialWeekday();
       return;
     }
@@ -659,7 +670,11 @@ class _AddOrEditEventFormState extends State<AddOrEditEventForm> {
       // Clear weekdays selection and then set the selected days
       _selectedDays = List.filled(7, false);
       event.recurrenceSettings!.weekdays.forEach(
-        (index) => _selectedDays[index] = true,
+        (index) {
+          if (index >= 0 && index < 7) {
+            _selectedDays[index] = true;
+          }
+        },
       );
     } else {
       _isRecurring = false;

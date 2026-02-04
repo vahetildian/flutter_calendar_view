@@ -23,6 +23,7 @@ class MonthPageHeader extends CalendarPageHeader {
     StringProvider? dateStringBuilder,
     required DateTime date,
     HeaderStyle headerStyle = const HeaderStyle(),
+    Widget? viewSelector,
   }) : super(
           key: key,
           date: date,
@@ -37,6 +38,7 @@ class MonthPageHeader extends CalendarPageHeader {
           dateStringBuilder:
               dateStringBuilder ?? MonthPageHeader._monthStringBuilder,
           headerStyle: headerStyle,
+          viewSelector: viewSelector,
         );
 
   static String _monthStringBuilder(DateTime date, {DateTime? secondaryDate}) =>

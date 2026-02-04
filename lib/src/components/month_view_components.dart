@@ -142,6 +142,7 @@ class FilledCell<T extends Object?> extends StatelessWidget {
     return Container(
       color: backgroundColor,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
             height: 5.0,
@@ -172,60 +173,80 @@ class FilledCell<T extends Object?> extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: List.generate(
                       events.length,
-                      (index) => GestureDetector(
-                        onTap: onTileTap.safeVoidCall(events[index], date),
-                        onLongPress:
-                            onTileLongTap.safeVoidCall(events[index], date),
-                        onDoubleTap:
-                            onTileDoubleTap.safeVoidCall(events[index], date),
-                        onTapUp: onTileTapDetails == null
-                            ? null
-                            : (details) => onTileTapDetails?.call(
-                                  events[index],
-                                  date,
-                                  details,
-                                ),
-                        onLongPressStart: onTileLongTapDetails == null
-                            ? null
-                            : (details) => onTileLongTapDetails?.call(
-                                  events[index],
-                                  date,
-                                  details,
-                                ),
-                        onDoubleTapDown: onTileDoubleTapDetails == null
-                            ? null
-                            : (details) => onTileDoubleTapDetails?.call(
-                                  events[index],
-                                  date,
-                                  details,
-                                ),
-                        child: Container(
+                      (index) {
+                        final event = events[index];
+                        final tile = Container(
                           decoration: BoxDecoration(
-                            color: events[index].color,
+                            color: event.color,
                             borderRadius: BorderRadius.circular(4.0),
                           ),
                           margin: EdgeInsets.symmetric(
                               vertical: 2.0, horizontal: 3.0),
                           padding: const EdgeInsets.all(2.0),
-                          alignment: Alignment.center,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  events[index].title,
-                                  overflow: TextOverflow.clip,
-                                  maxLines: 1,
-                                  style: events[index].titleStyle ??
-                                      TextStyle(
-                                        color: events[index].color.accent,
-                                        fontSize: 12,
-                                      ),
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            event.title,
+                            overflow: TextOverflow.clip,
+                            maxLines: 1,
+                            style: event.titleStyle ??
+                                TextStyle(
+                                  color: event.color.accent,
+                                  fontSize: 12,
                                 ),
-                              ),
-                            ],
                           ),
-                        ),
-                      ),
+                        );
+
+                        return Draggable<Map<String, dynamic>>(
+                          data: {
+                            'event': event,
+                            'start': event.startTime,
+                            'end': event.endTime,
+                          },
+                          onDragStarted: () {
+                            print('[Drag] Started dragging: ${event.title}');
+                          },
+                          onDragCompleted: () {
+                            print('[Drag] Completed: ${event.title} - drop was accepted');
+                          },
+                          onDraggableCanceled: (velocity, offset) {
+                            print('[Drag] Canceled: ${event.title} - drop target rejected or no target found');
+                          },
+                          feedback: Material(
+                            color: Colors.transparent,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 200),
+                              child: Opacity(
+                                opacity: 0.85,
+                                child: tile,
+                              ),
+                            ),
+                          ),
+                          childWhenDragging: Opacity(
+                            opacity: 0.4,
+                            child: tile,
+                          ),
+                          child: GestureDetector(
+                            onTap: onTileTap.safeVoidCall(event, date),
+                            onDoubleTap:
+                                onTileDoubleTap.safeVoidCall(event, date),
+                            onTapUp: onTileTapDetails == null
+                                ? null
+                                : (details) => onTileTapDetails?.call(
+                                      event,
+                                      date,
+                                      details,
+                                    ),
+                            onDoubleTapDown: onTileDoubleTapDetails == null
+                                ? null
+                                : (details) => onTileDoubleTapDetails?.call(
+                                      event,
+                                      date,
+                                      details,
+                                    ),
+                            child: tile,
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),

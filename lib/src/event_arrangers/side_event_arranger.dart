@@ -45,6 +45,7 @@ class SideEventArranger<T extends Object?> extends EventArranger<T> {
 
     List<_SideEventConfigs<T>> _categorizedColumnedEvents(
         List<CalendarEventData<T>> events) {
+      // Merge connected/overlapping events first so we operate on components.
       final merged = MergeEventArranger<T>(includeEdges: includeEdges).arrange(
         events: events,
         height: height,
@@ -56,50 +57,67 @@ class SideEventArranger<T extends Object?> extends EventArranger<T> {
 
       final arranged = <_SideEventConfigs<T>>[];
 
-      for (final event in merged) {
-        if (event.events.isEmpty) {
-          // NOTE(parth): This is safety condition.
-          // This condition should never be true.
-          // If by chance this becomes true, there is something wrong with
-          // logic. And that need to be fixed ASAP.
+      // Helper to compute start/end minutes for an event on this view day.
+      int _getStart(CalendarEventData<T> e) {
+        final start = e.startTime!.getTotalMinutes - (startHour * 60);
+        return math.max(0, start);
+      }
 
+      int _getEnd(CalendarEventData<T> e) {
+        final raw = e.endTime!.getTotalMinutes - (startHour * 60);
+        final visible = Constants.minutesADay - (startHour * 60);
+        return math.min(visible, raw <= 0 ? visible : raw);
+      }
+
+      for (final group in merged) {
+        if (group.events.isEmpty) continue;
+
+        if (group.events.length == 1) {
+          arranged.add(_SideEventConfigs(columns: 1, event: group.events));
           continue;
         }
 
-        if (event.events.length > 1) {
-          // NOTE: This means all the events are overlapping with each other.
-          // So, we will extract all the events that can be fit in
-          // Single column without overlapping and run the function
-          // again for the rest of the events.
+        // Assign columns greedily per event within this merged group.
+        // Sort events by start then by longer duration first for stability.
+        final eventsSorted = [...group.events]
+          ..sort((a, b) {
+            final sa = _getStart(a);
+            final sb = _getStart(b);
+            if (sa != sb) return sa - sb;
+            return _getEnd(b) - _getEnd(a);
+          });
 
-          final columnedEvents = _extractSingleColumnEvents(
-            event.events,
-            event.endDuration.getTotalMinutes,
-          );
+        final List<int> columnEnd = []; // end minute for each column
+        final Map<CalendarEventData<T>, int> assignment = {};
 
-          final sided = _categorizedColumnedEvents(
-            event.events.where((e) => !columnedEvents.contains(e)).toList(),
-          );
+        for (final e in eventsSorted) {
+          final s = _getStart(e);
+          final en = _getEnd(e);
 
-          var maxColumns = 1;
-
-          for (final event in sided) {
-            if (event.columns > maxColumns) {
-              maxColumns = event.columns;
+          // find first column where this event doesn't overlap
+          var placed = false;
+          for (var c = 0; c < columnEnd.length; c++) {
+            final colEnd = columnEnd[c];
+            final overlaps = includeEdges ? (s < colEnd) : (s < colEnd);
+            if (!overlaps) {
+              assignment[e] = c;
+              columnEnd[c] = en;
+              placed = true;
+              break;
             }
           }
 
-          arranged.add(_SideEventConfigs(
-            columns: maxColumns + 1,
-            event: columnedEvents,
-            sideEvents: sided,
-          ));
-        } else {
-          // If this block gets executed that means we have only one event.
-          // Return the event as is.
-
-          arranged.add(_SideEventConfigs(columns: 1, event: event.events));
+          if (!placed) {
+            assignment[e] = columnEnd.length;
+            columnEnd.add(en);
+          }
         }
+
+        arranged.add(_SideEventConfigs(
+          columns: columnEnd.length,
+          event: group.events,
+          assignment: assignment,
+        ));
       }
 
       return arranged;
@@ -166,7 +184,7 @@ class SideEventArranger<T extends Object?> extends EventArranger<T> {
               eventEnd,
             );
 
-            final top = eventStart * heightPerMinute;
+            final baseTop = eventStart * heightPerMinute;
 
             // Calculate visibleMinutes (the total minutes displayed in the view)
             final visibleMinutes = Constants.minutesADay - (startHourInMinutes);
@@ -176,11 +194,33 @@ class SideEventArranger<T extends Object?> extends EventArranger<T> {
                 ? 0.0 // Event extends to bottom of view
                 : height - eventEnd * heightPerMinute;
 
+            // Add a small offset for midnight events to improve visibility.
+            // Cap the offset so short events don't disappear.
+            final double offset;
+            if (eventStart == 0) {
+              final eventHeight = eventEnd * heightPerMinute;
+              final maxOffset = math.max(0.0, eventHeight - heightPerMinute);
+              offset = math.min(heightPerMinute * 5, maxOffset);
+            } else {
+              offset = 0.0;
+            }
+
+            final top = baseTop + offset;
+            final adjustedBottom = math.max(0.0, bottom - offset);
+
+            // Determine column index for this event if available.
+            final columnIndex = event.assignment != null
+                ? (event.assignment![e] ?? 0)
+                : 0;
+
+            final left = offset + columnIndex * slotWidth;
+            final right = totalWidth - (left + slotWidth);
+
             return OrganizedCalendarEventData<T>(
-              left: offset,
-              right: totalWidth - (offset + slotWidth),
+              left: left,
+              right: right,
               top: top,
-              bottom: bottom,
+              bottom: adjustedBottom,
               startDuration: startTime.copyFromMinutes(eventStart),
               endDuration: endTime.copyFromMinutes(eventEnd),
               events: [e],
@@ -288,10 +328,12 @@ class _SideEventConfigs<T extends Object?> {
   final int columns;
   final List<CalendarEventData<T>> event;
   final List<_SideEventConfigs<T>> sideEvents;
+  final Map<CalendarEventData<T>, int>? assignment;
 
   const _SideEventConfigs({
     this.event = const [],
     required this.columns,
     this.sideEvents = const [],
+    this.assignment,
   });
 }

@@ -4,16 +4,9 @@
 
 import 'package:flutter/material.dart';
 
+import '../../calendar_view.dart';
 import '../components/_internal_components.dart';
-import '../components/event_scroll_notifier.dart';
-import '../components/week_view_components.dart';
-import '../enumerations.dart';
-import '../event_arrangers/event_arrangers.dart';
-import '../event_controller.dart';
-import '../extensions.dart';
-import '../modals.dart';
 import '../painters.dart';
-import '../typedefs.dart';
 
 /// A single page for week view.
 class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
@@ -128,6 +121,9 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
 
   final ScrollController multiDayViewScrollController;
 
+  /// Whether this page is the currently active page in the PageView.
+  final bool isActivePage;
+
   /// First hour displayed in the layout
   final int startHour;
 
@@ -164,73 +160,80 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
   /// Flag to keep scrollOffset of pages on page change
   final bool keepScrollOffset;
 
+  /// If true, drag/drop times snap to nearest 5-minute slot.
+  final bool stickyTimeSlot;
+
   /// Use this field to disable the calendar scrolling
   final ScrollPhysics? scrollPhysics;
 
   /// This method will be called when user taps on timestamp in timeline.
   final TimestampCallback? onTimestampTap;
 
-  /// A single page for week view.
-  const InternalMultiDayViewPage(
-      {Key? key,
-      required this.showVerticalLine,
-      required this.weekTitleHeight,
-      required this.weekDayBuilder,
-      required this.weekNumberBuilder,
-      required this.width,
-      required this.dates,
-      required this.eventTileBuilder,
-      required this.controller,
-      required this.timeLineBuilder,
-      required this.hourIndicatorSettings,
-      required this.hourLinePainter,
-      required this.halfHourIndicatorSettings,
-      required this.quarterHourIndicatorSettings,
-      required this.showLiveLine,
-      required this.liveTimeIndicatorSettings,
-      required this.heightPerMinute,
-      required this.timeLineWidth,
-      required this.timeLineOffset,
-      required this.height,
-      required this.hourHeight,
-      required this.eventArranger,
-      required this.verticalLineOffset,
-      required this.weekTitleWidth,
-      required this.onTileTap,
-      required this.onTileLongTap,
-      required this.onDateLongPress,
-      required this.onDateTap,
-      required this.weekDays,
-      required this.minuteSlotSize,
-      required this.scrollConfiguration,
-      required this.startHour,
-      required this.fullDayEventBuilder,
-      required this.weekDetectorBuilder,
-      required this.showWeekDayAtBottom,
-      required this.showHalfHours,
-      required this.showQuarterHours,
-      required this.emulateVerticalOffsetBy,
-      required this.onTileDoubleTap,
-      required this.endHour,
-      required this.onTimestampTap,
-      this.fullDayHeaderTitle = '',
-      required this.fullDayHeaderTextConfig,
-      required this.scrollPhysics,
-      required this.scrollListener,
-      required this.multiDayViewScrollController,
-      this.lastScrollOffset = 0.0,
-      this.keepScrollOffset = false,
-      this.showMutliDayBottomLine = true})
-      : super(key: key);
+  /// A single page for multi-day view.
+  InternalMultiDayViewPage({
+    Key? key,
+    required this.showVerticalLine,
+    required this.weekTitleHeight,
+    required this.weekDayBuilder,
+    required this.weekNumberBuilder,
+    required this.weekDetectorBuilder,
+    required this.width,
+    required this.dates,
+    required this.eventTileBuilder,
+    required this.controller,
+    required this.timeLineBuilder,
+    required this.hourIndicatorSettings,
+    required this.hourLinePainter,
+    required this.halfHourIndicatorSettings,
+    required this.quarterHourIndicatorSettings,
+    required this.showLiveLine,
+    required this.liveTimeIndicatorSettings,
+    required this.heightPerMinute,
+    required this.timeLineWidth,
+    required this.timeLineOffset,
+    required this.height,
+    required this.hourHeight,
+    required this.eventArranger,
+    required this.verticalLineOffset,
+    required this.weekTitleWidth,
+    required this.onTileTap,
+    required this.onTileLongTap,
+    required this.onTileDoubleTap,
+    required this.weekDays,
+    required this.onDateLongPress,
+    required this.onDateTap,
+    required this.minuteSlotSize,
+    required this.scrollConfiguration,
+    required this.fullDayEventBuilder,
+    required this.multiDayViewScrollController,
+    required this.isActivePage,
+    required this.startHour,
+    required this.showWeekDayAtBottom,
+    required this.showHalfHours,
+    required this.showQuarterHours,
+    required this.showMutliDayBottomLine,
+    required this.emulateVerticalOffsetBy,
+    required this.endHour,
+    required this.fullDayHeaderTextConfig,
+    required this.scrollListener,
+    required this.lastScrollOffset,
+    required this.keepScrollOffset,
+    required this.scrollPhysics,
+    required this.onTimestampTap,
+    this.stickyTimeSlot = true,
+    this.fullDayHeaderTitle = '',
+  }) : super(key: key);
 
   @override
   _InternalMultiDayViewPageState<T> createState() =>
       _InternalMultiDayViewPageState<T>();
-}
+  
+  }
 
-class _InternalMultiDayViewPageState<T extends Object?>
+  class _InternalMultiDayViewPageState<T>
     extends State<InternalMultiDayViewPage<T>> {
   late ScrollController scrollController;
+  late List<GlobalKey> _dayColumnKeys;
 
   @override
   void initState() {
@@ -239,6 +242,7 @@ class _InternalMultiDayViewPageState<T extends Object?>
       initialScrollOffset: widget.lastScrollOffset,
     );
     scrollController.addListener(_scrollControllerListener);
+    _dayColumnKeys = [];
   }
 
   @override
@@ -269,7 +273,7 @@ class _InternalMultiDayViewPageState<T extends Object?>
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           ColoredBox(
-            color: themeColor.headerBackgroundColor,
+            color: themeColor.multiDayTileColor,
             child: SizedBox(
               width: widget.width,
               child: Row(
@@ -359,7 +363,7 @@ class _InternalMultiDayViewPageState<T extends Object?>
             child: SingleChildScrollView(
               controller: widget.keepScrollOffset
                   ? scrollController
-                  : widget.multiDayViewScrollController,
+                  : (widget.isActivePage ? widget.multiDayViewScrollController : null),
               physics: widget.scrollPhysics,
               child: SizedBox(
                 height: widget.height,
@@ -430,9 +434,15 @@ class _InternalMultiDayViewPageState<T extends Object?>
                         height: widget.height,
                         child: Row(
                           children: [
-                            ...List.generate(
-                              filteredDates.length,
-                              (index) => Container(
+                              ...List.generate(
+                                filteredDates.length,
+                                (index) {
+                                  if (_dayColumnKeys.length != filteredDates.length) {
+                                    _dayColumnKeys = List.generate(
+                                        filteredDates.length, (_) => GlobalKey());
+                                  }
+                                  return Container(
+                                    key: _dayColumnKeys[index],
                                 decoration: widget.showVerticalLine
                                     ? BoxDecoration(
                                         border: Border(
@@ -487,6 +497,80 @@ class _InternalMultiDayViewPageState<T extends Object?>
                                       heightPerMinute: widget.heightPerMinute,
                                       endHour: widget.endHour,
                                     ),
+                                    DragTarget<Map<String, dynamic>>(
+                                      onWillAccept: (data) => data != null,
+                                      onAcceptWithDetails: (details) {
+                                        final payload = details.data;
+                                        final event = payload['event'] as CalendarEventData<T>?;
+                                        final start = payload['start'] as DateTime?;
+                                        final end = payload['end'] as DateTime?;
+                                        if (event == null || start == null || end == null) return;
+
+                                        print('[MultiDayView Drag] Original event: date=${event.date}, endDate=${event.endDate}, startTime=${event.startTime}, endTime=${event.endTime}');
+
+                                        final keyBox = _dayColumnKeys[index].currentContext?.findRenderObject() as RenderBox?;
+                                        final box = keyBox ?? context.findRenderObject() as RenderBox;
+                                        final topLeft = box.localToGlobal(Offset.zero);
+                                        final dy = (details.offset.dy - topLeft.dy).clamp(0.0, widget.height);
+                                        final totalMinutes = (widget.endHour - widget.startHour) * 60;
+                                        final minutesFromTop = (dy / widget.height) * totalMinutes;
+                                        var newStartMinutes =
+                                            (widget.startHour * 60) + minutesFromTop.round();
+                                        if (widget.stickyTimeSlot) {
+                                          newStartMinutes = ((newStartMinutes + 2) ~/ 5) * 5;
+                                        }
+
+                                        final newStart = DateTime(
+                                          widget.dates[index].year,
+                                          widget.dates[index].month,
+                                          widget.dates[index].day,
+                                        ).add(Duration(minutes: newStartMinutes));
+
+                                        final duration = end.difference(start);
+                                        final newEnd = newStart.add(duration);
+
+                                        print('[MultiDayView Drag] Calculated: newStart=$newStart, newEnd=$newEnd, duration=$duration');
+                                        print('[MultiDayView Drag] Day check: newStart.day=${newStart.day}, newEnd.day=${newEnd.day}');
+                                        print('[MultiDayView Drag] newEnd time: hour=${newEnd.hour}, minute=${newEnd.minute}, second=${newEnd.second}');
+
+                                        // Calculate newEndDate based on actual start/end times
+                                        // Check if the actual times span into the next day
+                                        final DateTime newEndDate;
+                                        final DateTime adjustedNewEnd;
+                                        if (newEnd.day > newStart.day || (newEnd.day == 1 && newStart.day > 1)) {
+                                          // Event spans into next day
+                                          // Special case: if newEnd is exactly midnight, it should end on current day at 23:59:59
+                                          if (newEnd.hour == 0 && newEnd.minute == 0 && newEnd.second == 0) {
+                                            // Event ends exactly at midnight - adjust to previous day
+                                            adjustedNewEnd = newEnd.subtract(Duration(seconds: 1));
+                                            newEndDate = DateTime(adjustedNewEnd.year, adjustedNewEnd.month, adjustedNewEnd.day);
+                                          } else {
+                                            adjustedNewEnd = newEnd;
+                                            newEndDate = DateTime(newEnd.year, newEnd.month, newEnd.day);
+                                          }
+                                        } else {
+                                          // Single-day event
+                                          adjustedNewEnd = newEnd;
+                                          newEndDate = DateTime(newStart.year, newStart.month, newStart.day);
+                                        }
+
+                                        final updated = event.copyWith(
+                                          date: widget.dates[index],
+                                          startTime: newStart,
+                                          endTime: adjustedNewEnd,
+                                          endDate: newEndDate,
+                                        );
+
+                                        widget.controller.update(event, updated);
+                                      },
+                                      builder: (context, candidate, rejected) {
+                                        return IgnorePointer(
+                                          child: Container(
+                                            color: Colors.transparent,
+                                          ),
+                                        );
+                                      },
+                                    ),
                                     if (widget.showLiveLine &&
                                         widget.liveTimeIndicatorSettings
                                                 .height >
@@ -508,10 +592,12 @@ class _InternalMultiDayViewPageState<T extends Object?>
                                           onlyShowToday: widget
                                               .liveTimeIndicatorSettings
                                               .onlyShowToday,
+                                          isActivePage: widget.isActivePage,
                                         ),
                                   ],
                                 ),
-                              ),
+                                );
+                              },
                             )
                           ],
                         ),
@@ -530,6 +616,7 @@ class _InternalMultiDayViewPageState<T extends Object?>
                           widget.liveTimeIndicatorSettings,
                       endHour: widget.endHour,
                       onTimestampTap: widget.onTimestampTap,
+                      isActivePage: widget.isActivePage,
                     ),
                     if (widget.showLiveLine &&
                         widget.liveTimeIndicatorSettings.height > 0 &&
@@ -548,6 +635,7 @@ class _InternalMultiDayViewPageState<T extends Object?>
                         timeLineWidth: widget.timeLineWidth,
                         startHour: widget.startHour,
                         endHour: widget.endHour,
+                        isActivePage: widget.isActivePage,
                       ),
                   ],
                 ),

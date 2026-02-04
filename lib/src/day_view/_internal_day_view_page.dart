@@ -4,14 +4,9 @@
 
 import 'package:flutter/material.dart';
 
+import '../../calendar_view.dart';
 import '../components/_internal_components.dart';
-import '../components/event_scroll_notifier.dart';
-import '../enumerations.dart';
-import '../event_arrangers/event_arrangers.dart';
-import '../event_controller.dart';
-import '../modals.dart';
 import '../painters.dart';
-import '../typedefs.dart';
 
 /// Defines a single day page.
 class InternalDayViewPage<T extends Object?> extends StatefulWidget {
@@ -130,8 +125,14 @@ class InternalDayViewPage<T extends Object?> extends StatefulWidget {
   /// This field will be used to set end hour for day view
   final int endHour;
 
+  /// Whether this page is the currently active page in the PageView.
+  final bool isActivePage;
+
   /// Flag to keep scrollOffset of pages on page change
   final bool keepScrollOffset;
+
+  /// If true, drag/drop times snap to nearest 5-minute slot.
+  final bool stickyTimeSlot;
 
   /// Use this field to disable the calendar scrolling
   final ScrollPhysics? scrollPhysics;
@@ -180,6 +181,8 @@ class InternalDayViewPage<T extends Object?> extends StatefulWidget {
     required this.onTileDoubleTap,
     required this.onTimestampTap,
     this.keepScrollOffset = false,
+    this.isActivePage = true,
+    this.stickyTimeSlot = true,
   }) : super(key: key);
 
   @override
@@ -189,6 +192,7 @@ class InternalDayViewPage<T extends Object?> extends StatefulWidget {
 class _InternalDayViewPageState<T extends Object?>
     extends State<InternalDayViewPage<T>> {
   late ScrollController scrollController;
+  final GlobalKey _dayKey = GlobalKey();
 
   @override
   void initState() {
@@ -326,6 +330,75 @@ class _InternalDayViewPageState<T extends Object?>
                             widget.verticalLineOffset,
                       ),
                     ),
+                    // Drop target overlay for day view — placed above events so
+                    // it catches drops even when landing on top of event tiles.
+                    Positioned.fill(
+                      child: DragTarget<Map<String, dynamic>>(
+                        builder: (context, candidateData, rejectedData) =>
+                            IgnorePointer(
+                          child: Container(
+                            key: _dayKey,
+                            color: Colors.transparent,
+                          ),
+                        ),
+                        onWillAcceptWithDetails: (details) =>
+                          details.data.containsKey('event'),
+                        onAcceptWithDetails: (details) {
+                          try {
+                            final payload = details.data;
+                            final oldEvent = payload['event'] as CalendarEventData<T>;
+                            final originalStart = payload['start'] as DateTime;
+                            final originalEnd = payload['end'] as DateTime;
+
+                            final renderBox = _dayKey.currentContext?.findRenderObject() as RenderBox?;
+                            if (renderBox == null) return;
+
+                            final topLeft = renderBox.localToGlobal(Offset.zero);
+                            final dy = details.offset.dy - topLeft.dy;
+
+                            final totalMinutes = (widget.endHour - widget.startHour) * 60;
+                            final minutesFromTop = (dy / widget.height * totalMinutes).round();
+
+                            var newStartMinutes = widget.startHour * 60 + minutesFromTop;
+                            if (widget.stickyTimeSlot) {
+                              newStartMinutes = ((newStartMinutes + 2) ~/ 5) * 5;
+                            }
+                            final newStart = DateTime(
+                              widget.date.year,
+                              widget.date.month,
+                              widget.date.day,
+                            ).copyFromMinutes(newStartMinutes);
+
+                            final duration = originalEnd.difference(originalStart);
+                            final newEnd = newStart.add(duration);
+
+                            // Calculate newEndDate accounting for events that span multiple days
+                            DateTime newEndDate;
+                            if (oldEvent.endDate != oldEvent.date) {
+                              // Multi-day event: preserve the day span
+                              final daySpan = oldEvent.endDate.difference(oldEvent.date).inDays;
+                              newEndDate = DateTime(newStart.year, newStart.month, newStart.day).add(Duration(days: daySpan));
+                            } else {
+                              // Single-day event: check if newEnd crosses into the next day
+                              if (newEnd.day != newStart.day) {
+                                newEndDate = DateTime(newEnd.year, newEnd.month, newEnd.day);
+                              } else {
+                                newEndDate = DateTime(newStart.year, newStart.month, newStart.day);
+                              }
+                            }
+
+                            final updated = oldEvent.copyWith(
+                              date: newStart.withoutTime,
+                              startTime: newStart,
+                              endTime: newEnd,
+                              endDate: newEndDate,
+                            );
+
+                            widget.controller.update(oldEvent, updated);
+                          } catch (_) {}
+                        },
+                      ),
+                    ),
                     TimeLine(
                       height: widget.height,
                       hourHeight: widget.hourHeight,
@@ -340,6 +413,7 @@ class _InternalDayViewPageState<T extends Object?>
                       liveTimeIndicatorSettings:
                           widget.liveTimeIndicatorSettings,
                       onTimestampTap: widget.onTimestampTap,
+                      isActivePage: widget.isActivePage,
                     ),
                     if (widget.showLiveLine &&
                         widget.liveTimeIndicatorSettings.height > 0)
@@ -353,6 +427,7 @@ class _InternalDayViewPageState<T extends Object?>
                           timeLineWidth: widget.timeLineWidth,
                           startHour: widget.startHour,
                           endHour: widget.endHour,
+                          isActivePage: widget.isActivePage,
                         ),
                       ),
                   ],

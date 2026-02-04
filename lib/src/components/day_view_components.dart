@@ -37,6 +37,15 @@ class RoundedEventTile extends StatelessWidget {
   /// Style for description
   final TextStyle? descriptionStyle;
 
+  /// Tap callback for the tile.
+  final VoidCallback? onTap;
+
+  /// Long press callback for the tile.
+  final VoidCallback? onLongPress;
+
+  /// Double tap callback for the tile.
+  final VoidCallback? onDoubleTap;
+
   /// This is default tile to display in day view.
   const RoundedEventTile({
     Key? key,
@@ -49,6 +58,9 @@ class RoundedEventTile extends StatelessWidget {
     this.backgroundColor = Colors.blue,
     this.titleStyle,
     this.descriptionStyle,
+    this.onTap,
+    this.onLongPress,
+    this.onDoubleTap,
   }) : super(key: key);
 
   @override
@@ -60,49 +72,91 @@ class RoundedEventTile extends StatelessWidget {
         color: backgroundColor,
         borderRadius: borderRadius,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (title.isNotEmpty)
-            Expanded(
-              child: Text(
-                title,
-                style: titleStyle ??
-                    TextStyle(
-                      fontSize: 20,
-                      color: backgroundColor.accent,
-                    ),
-                softWrap: true,
-                overflow: TextOverflow.fade,
-              ),
-            ),
-          if (description?.isNotEmpty ?? false)
-            Expanded(
+      child: ClipRRect(
+        borderRadius: borderRadius,
+        child: LayoutBuilder(builder: (context, constraints) {
+          // If tile is too short, show a compact summary (only title)
+          final compactThreshold = 48.0;
+          if (constraints.maxHeight > 0 &&
+              constraints.maxHeight < compactThreshold) {
+            return InkWell(
+              onTap: onTap,
+              onLongPress: onLongPress,
+              onDoubleTap: onDoubleTap,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 15.0),
+                padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
                 child: Text(
-                  description!,
-                  style: descriptionStyle ??
+                  title,
+                  style: titleStyle ??
                       TextStyle(
-                        fontSize: 17,
-                        color: backgroundColor.accent.withAlpha(200),
+                        fontSize: 16,
+                        color: backgroundColor.accent,
                       ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+            );
+          }
+
+          // Default (full) layout
+          return InkWell(
+            onTap: onTap,
+            onLongPress: onLongPress,
+            onDoubleTap: onDoubleTap,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (title.isNotEmpty)
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: Text(
+                      title,
+                      style: titleStyle ??
+                          TextStyle(
+                            fontSize: 16,
+                            color: backgroundColor.accent,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                if (description?.isNotEmpty ?? false)
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 4.0),
+                      child: Text(
+                        description!,
+                        style: descriptionStyle ??
+                            TextStyle(
+                              fontSize: 14,
+                              color: backgroundColor.accent.withAlpha(200),
+                            ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                if (totalEvents > 1)
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: Text(
+                      "+${totalEvents - 1} ${PackageStrings.currentLocale.more}",
+                      style: (descriptionStyle ??
+                              TextStyle(
+                                color: backgroundColor.accent.withAlpha(200),
+                              ))
+                          .copyWith(fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
             ),
-          if (totalEvents > 1)
-            Expanded(
-              child: Text(
-                "+${totalEvents - 1} ${PackageStrings.currentLocale.more}",
-                style: (descriptionStyle ??
-                        TextStyle(
-                          color: backgroundColor.accent.withAlpha(200),
-                        ))
-                    .copyWith(fontSize: 17),
-              ),
-            ),
-        ],
+          );
+        }),
       ),
     );
   }

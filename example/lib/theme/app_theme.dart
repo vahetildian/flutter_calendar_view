@@ -29,14 +29,15 @@ class AppTheme {
   // Light colors
   static final _dayViewTheme = DayViewThemeData.light();
   static final _weekViewTheme = WeekViewThemeData.light();
-  static final _multiDayViewTheme = MultiDayViewThemeData.light();
+  // Reuse week view theme for multi-day view to keep colors identical
+  static final _multiDayViewTheme = _weekViewTheme;
 
   // Dark colors
   static final _appDarkTheme = AppThemeExtension.dark();
   static final _monthViewDarkTheme = MonthViewThemeData.dark();
   static final _dayViewDarkTheme = DayViewThemeData.dark();
   static final _weekViewDarkTheme = WeekViewThemeData.dark();
-  static final _multiDayViewDarkTheme = MultiDayViewThemeData.dark();
+  static final _multiDayViewDarkTheme = _weekViewDarkTheme;
 
   // Light theme
   static final light = ThemeData.light().copyWith(

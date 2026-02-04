@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 
 import '../../calendar_view.dart';
 import '../constants.dart';
-import '../extensions.dart';
 import '../painters.dart';
 import '_internal_multi_day_view_page.dart';
 
@@ -215,6 +214,9 @@ class MultiDayView<T extends Object?> extends StatefulWidget {
   ///Show quarter hour indicator
   final bool showQuarterHours;
 
+  /// If true, drag/drop times snap to nearest 5-minute slot.
+  final bool stickyTimeSlot;
+
   ///Emulates offset of vertical line from hour line starts.
   final double emulateVerticalOffsetBy;
 
@@ -298,6 +300,7 @@ class MultiDayView<T extends Object?> extends StatefulWidget {
     this.onHeaderTitleTap,
     this.showHalfHours = false,
     this.showQuarterHours = false,
+    this.stickyTimeSlot = true,
     this.emulateVerticalOffsetBy = 0,
     this.showWeekDayAtBottom = false,
     this.pageViewPhysics,
@@ -509,7 +512,10 @@ class MultiDayViewState<T extends Object?> extends State<MultiDayView<T>> {
               ),
               Expanded(
                 child: DecoratedBox(
-                  decoration: BoxDecoration(color: widget.backgroundColor),
+                  decoration: BoxDecoration(
+                    color: widget.backgroundColor ??
+                        context.multiDayViewTheme.pageBackgroundColor,
+                  ),
                   child: SizedBox(
                     height: _height,
                     width: _width,
@@ -588,7 +594,9 @@ class MultiDayViewState<T extends Object?> extends State<MultiDayView<T>> {
                             lastScrollOffset: _lastScrollOffset,
                             scrollPhysics: widget.scrollPhysics,
                             scrollListener: _scrollPageListener,
-                            keepScrollOffset: widget.keepScrollOffset,
+                              keepScrollOffset: widget.keepScrollOffset,
+                              isActivePage: index == _currentIndex,
+                            stickyTimeSlot: widget.stickyTimeSlot,
                           ),
                         );
                       },
@@ -641,12 +649,12 @@ class MultiDayViewState<T extends Object?> extends State<MultiDayView<T>> {
   }
 
   void _updateViewDimensions() {
-    final borderColor = context.multiDayViewColors.borderColor;
+    final borderColor = context.multiDayViewTheme.borderColor;
     _timeLineWidth = widget.timeLineWidth ?? _width * 0.13;
 
     _liveTimeIndicatorSettings = widget.liveTimeIndicatorSettings ??
         LiveTimeIndicatorSettings(
-          color: context.multiDayViewColors.liveIndicatorColor,
+          color: context.multiDayViewTheme.liveIndicatorColor,
           height: widget.heightPerMinute,
         );
 
@@ -786,7 +794,7 @@ class MultiDayViewState<T extends Object?> extends State<MultiDayView<T>> {
 
   /// Default builder for week line.
   Widget _defaultWeekDayBuilder(DateTime date) {
-    final textColor = context.multiDayViewColors.multiDayTextColor;
+    final textColor = context.multiDayViewTheme.multiDayTextColor;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -823,7 +831,7 @@ class MultiDayViewState<T extends Object?> extends State<MultiDayView<T>> {
       child: Text(
         PackageStrings.localizeNumber(weekNumber),
         style: TextStyle(
-          color: context.multiDayViewColors.multiDayTextColor,
+          color: context.multiDayViewTheme.multiDayTextColor,
         ),
       ),
     );
@@ -836,7 +844,7 @@ class MultiDayViewState<T extends Object?> extends State<MultiDayView<T>> {
         date: date,
         timeStringBuilder: widget.timeLineStringBuilder,
         markingStyle: TextStyle(
-          color: context.multiDayViewColors.timelineTextColor,
+          color: context.multiDayViewTheme.timelineTextColor,
           fontSize: 15.0,
         ),
       );
@@ -856,6 +864,15 @@ class MultiDayViewState<T extends Object?> extends State<MultiDayView<T>> {
         boundary: boundary,
         startDuration: startDuration,
         endDuration: endDuration,
+        onTap: widget.onEventTap != null
+            ? () => widget.onEventTap!.call(events, date)
+            : null,
+        onLongPress: widget.onEventLongTap != null
+            ? () => widget.onEventLongTap!.call(events, date)
+            : null,
+        onDoubleTap: widget.onEventDoubleTap != null
+            ? () => widget.onEventDoubleTap!.call(events, date)
+            : null,
       );
 
   /// Default view header builder. This builder will be used if
@@ -864,7 +881,7 @@ class MultiDayViewState<T extends Object?> extends State<MultiDayView<T>> {
     DateTime startDate,
     DateTime endDate,
   ) {
-    final themeColors = context.multiDayViewColors;
+    final themeColors = context.multiDayViewTheme;
     return WeekPageHeader(
       startDate: _currentStartDate,
       endDate: _currentEndDate,

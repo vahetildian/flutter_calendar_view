@@ -24,6 +24,7 @@ class WeekPageHeader extends CalendarPageHeader {
     Color backgroundColor = Constants.headerBackground,
     StringProvider? headerStringBuilder,
     HeaderStyle headerStyle = const HeaderStyle(),
+    Widget? viewSelector,
   }) : super(
           key: key,
           date: startDate,
@@ -39,6 +40,7 @@ class WeekPageHeader extends CalendarPageHeader {
           dateStringBuilder:
               headerStringBuilder ?? WeekPageHeader._weekStringBuilder,
           headerStyle: headerStyle,
+          viewSelector: viewSelector,
         );
 
   static String _weekStringBuilder(DateTime date, {DateTime? secondaryDate}) {

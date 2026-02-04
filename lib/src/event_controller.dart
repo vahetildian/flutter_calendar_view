@@ -324,8 +324,9 @@ class CalendarData<T extends Object?> {
     assert(event.endDate.difference(event.date).inDays >= 0,
         'The end date must be greater or equal to the start date');
 
-    // TODO: improve this...
-    if (_eventList.contains(event)) return;
+    // Avoid adding the same event instance twice, but allow events
+    // that are value-equal (e.g., same title/time) as distinct items.
+    if (_eventList.any((e) => identical(e, event))) return;
 
     if (event.isRecurringEvent) {
       _eventList.add(event);
@@ -395,7 +396,37 @@ class CalendarData<T extends Object?> {
 
   void updateEvent(
       CalendarEventData<T> oldEvent, CalendarEventData<T> newEvent) {
-    removeEvent(oldEvent);
+    // Remove the old event from wherever it is stored (by identity),
+    // then add the new event so it lands in the correct bucket.
+    final masterIdx = _eventList.indexWhere((e) => identical(e, oldEvent));
+    if (masterIdx != -1) _eventList.removeAt(masterIdx);
+
+    // Remove from single day map if present
+    DateTime? singleKeyToRemove;
+    for (final key in _singleDayEvents.keys) {
+      final list = _singleDayEvents[key]!;
+      final idx = list.indexWhere((e) => identical(e, oldEvent));
+      if (idx != -1) {
+        list.removeAt(idx);
+        if (list.isEmpty) singleKeyToRemove = key;
+        break;
+      }
+    }
+    if (singleKeyToRemove != null) _singleDayEvents.remove(singleKeyToRemove);
+
+    // Remove from ranging list
+    final rIdx = _rangingEventList.indexWhere((e) => identical(e, oldEvent));
+    if (rIdx != -1) _rangingEventList.removeAt(rIdx);
+
+    // Remove from full day list
+    final fIdx = _fullDayEventList.indexWhere((e) => identical(e, oldEvent));
+    if (fIdx != -1) _fullDayEventList.removeAt(fIdx);
+
+    // Remove from recurring list
+    final recIdx = _recurringEventsList.indexWhere((e) => identical(e, oldEvent));
+    if (recIdx != -1) _recurringEventsList.removeAt(recIdx);
+
+    // Finally add the new event
     addEvent(newEvent);
   }
   //#endregion
@@ -411,8 +442,12 @@ class CalendarData<T extends Object?> {
   // On returning true it excludes event and on false it won't exclude.
   bool _isExcluded(RecurrenceSettings settings, DateTime date) {
     final recurrenceEndDate = settings.endDate;
-    return (recurrenceEndDate != null && date.isAfter(recurrenceEndDate)) ||
+    final isExcluded = (recurrenceEndDate != null && date.isAfter(recurrenceEndDate)) ||
         (settings.excludeDates?.contains(date) ?? false);
+    if (settings.excludeDates != null && settings.excludeDates!.isNotEmpty) {
+      print('[EventController] _isExcluded check - date: $date, excludeDates: ${settings.excludeDates}, isExcluded: $isExcluded');
+    }
+    return isExcluded;
   }
 
   /// Determines whether the given date should be included as a recurring event

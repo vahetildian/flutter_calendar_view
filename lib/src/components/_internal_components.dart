@@ -38,6 +38,10 @@ class LiveTimeIndicator extends StatefulWidget {
   /// Flag to show only today's events.
   final bool onlyShowToday;
 
+  /// Whether this indicator is on the currently active page.
+  /// When false, timer will be paused to save CPU.
+  final bool isActivePage;
+
   /// Widget to display tile line according to current time.
   const LiveTimeIndicator(
       {Key? key,
@@ -48,7 +52,8 @@ class LiveTimeIndicator extends StatefulWidget {
       required this.heightPerMinute,
       required this.startHour,
       this.endHour = Constants.hoursADay,
-      this.onlyShowToday = false})
+      this.onlyShowToday = false,
+      this.isActivePage = true})
       : super(key: key);
 
   @override
@@ -63,12 +68,31 @@ class _LiveTimeIndicatorState extends State<LiveTimeIndicator> {
   void initState() {
     super.initState();
     _currentTime = _updateCurrentTime();
-    _timer = Timer.periodic(Duration(seconds: 1), _onTick);
+    // Only start timer if this is the active page
+    if (widget.isActivePage) {
+      _timer = Timer.periodic(Duration(seconds: 30), _onTick);
+    }
+  }
+
+  @override
+  void didUpdateWidget(LiveTimeIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Start or stop timer based on active page status
+    if (widget.isActivePage && !oldWidget.isActivePage) {
+      // Page became active, start timer
+      _currentTime = _updateCurrentTime();
+      _timer = Timer.periodic(Duration(seconds: 30), _onTick);
+    } else if (!widget.isActivePage && oldWidget.isActivePage) {
+      // Page became inactive, stop timer
+      _timer.cancel();
+    }
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    if (widget.isActivePage) {
+      _timer.cancel();
+    }
     super.dispose();
   }
 
@@ -138,25 +162,27 @@ class _LiveTimeIndicatorState extends State<LiveTimeIndicator> {
         ? widget.liveTimeIndicatorSettings.offset + widget.timeLineWidth
         : widget.liveTimeIndicatorSettings.offset - widget.timeLineWidth;
 
-    return CustomPaint(
-      size: Size(widget.width, widget.liveTimeIndicatorSettings.height),
-      painter: CurrentTimeLinePainter(
-        color: widget.liveTimeIndicatorSettings.color,
-        height: widget.liveTimeIndicatorSettings.height,
-        offset: Offset(
-          widget.onlyShowToday ? 0 : offsetX,
-          (_currentTime.getTotalMinutes - startMinutes) *
-              widget.heightPerMinute,
+    return RepaintBoundary(
+      child: CustomPaint(
+        size: Size(widget.width, widget.liveTimeIndicatorSettings.height),
+        painter: CurrentTimeLinePainter(
+          color: widget.liveTimeIndicatorSettings.color,
+          height: widget.liveTimeIndicatorSettings.height,
+          offset: Offset(
+            widget.onlyShowToday ? 0 : offsetX,
+            (_currentTime.getTotalMinutes - startMinutes) *
+                widget.heightPerMinute,
+          ),
+          timeString: timeString,
+          showBullet: widget.liveTimeIndicatorSettings.showBullet,
+          showTime: widget.liveTimeIndicatorSettings.showTime,
+          showTimeBackgroundView:
+              widget.liveTimeIndicatorSettings.showTimeBackgroundView,
+          bulletRadius: widget.liveTimeIndicatorSettings.bulletRadius,
+          timeBackgroundViewWidth:
+              widget.liveTimeIndicatorSettings.timeBackgroundViewWidth,
+          textDirection: direction,
         ),
-        timeString: timeString,
-        showBullet: widget.liveTimeIndicatorSettings.showBullet,
-        showTime: widget.liveTimeIndicatorSettings.showTime,
-        showTimeBackgroundView:
-            widget.liveTimeIndicatorSettings.showTimeBackgroundView,
-        bulletRadius: widget.liveTimeIndicatorSettings.bulletRadius,
-        timeBackgroundViewWidth:
-            widget.liveTimeIndicatorSettings.timeBackgroundViewWidth,
-        textDirection: direction,
       ),
     );
   }
@@ -200,6 +226,10 @@ class TimeLine extends StatefulWidget {
   /// This field will be used to set end hour for day and week view
   final int endHour;
 
+  /// Whether this timeline is on the currently active page.
+  /// When false, timer will be paused to save CPU.
+  final bool isActivePage;
+
   /// Time line to display time at left side of day or week view.
   const TimeLine({
     Key? key,
@@ -214,6 +244,7 @@ class TimeLine extends StatefulWidget {
     this.showQuarterHours = false,
     required this.liveTimeIndicatorSettings,
     this.endHour = Constants.hoursADay,
+    this.isActivePage = true,
   }) : super(key: key);
 
   @override
@@ -228,12 +259,31 @@ class _TimeLineState extends State<TimeLine> {
   void initState() {
     super.initState();
     _currentTime = _updateCurrentTime();
-    _timer = Timer.periodic(Duration(seconds: 1), _onTick);
+    // Only start timer if this is the active page
+    if (widget.isActivePage) {
+      _timer = Timer.periodic(Duration(seconds: 30), _onTick);
+    }
+  }
+
+  @override
+  void didUpdateWidget(TimeLine oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Start or stop timer based on active page status
+    if (widget.isActivePage && !oldWidget.isActivePage) {
+      // Page became active, start timer
+      _currentTime = _updateCurrentTime();
+      _timer = Timer.periodic(Duration(seconds: 30), _onTick);
+    } else if (!widget.isActivePage && oldWidget.isActivePage) {
+      // Page became inactive, stop timer
+      _timer.cancel();
+    }
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    if (widget.isActivePage) {
+      _timer.cancel();
+    }
     super.dispose();
   }
 
@@ -449,36 +499,46 @@ class EventGenerator<T extends Object?> extends StatelessWidget {
         bottom: events[index].bottom,
         left: isLtr ? events[index].left : events[index].right,
         right: isLtr ? events[index].right : events[index].left,
-        child: GestureDetector(
-          onLongPress: onTileLongTap != null
-              ? () => onTileLongTap!.call(events[index].events, date)
-              : null,
-          onTap: onTileTap != null
-              ? () => onTileTap!.call(events[index].events, date)
-              : null,
-          onDoubleTap: onTileDoubleTap != null
-              ? () => onTileDoubleTap!.call(events[index].events, date)
-              : null,
-          child: Builder(builder: (context) {
-            if (scrollNotifier.shouldScroll &&
-                events[index]
-                    .events
-                    .any((element) => element == scrollNotifier.event)) {
-              _scrollToEvent(context);
-            }
-            return eventTileBuilder(
-              date,
-              events[index].events,
-              Rect.fromLTWH(
-                  events[index].left,
-                  events[index].top,
-                  width - events[index].right - events[index].left,
-                  height - events[index].bottom - events[index].top),
-              events[index].startDuration,
-              events[index].endDuration,
-            );
-          }),
-        ),
+        child: Builder(builder: (context) {
+          if (scrollNotifier.shouldScroll &&
+              events[index]
+                  .events
+                  .any((element) => element == scrollNotifier.event)) {
+            _scrollToEvent(context);
+          }
+          final tile = eventTileBuilder(
+            date,
+            events[index].events,
+            Rect.fromLTWH(
+                events[index].left,
+                events[index].top,
+                width - events[index].right - events[index].left,
+                height - events[index].bottom - events[index].top),
+            events[index].startDuration,
+            events[index].endDuration,
+          );
+
+          // Make event tiles draggable. Using Draggable so drag starts on
+          // pointer movement (faster activation than long-press).
+          return Draggable<Map<String, dynamic>>(
+            data: {
+              'event': events[index].events[0],
+              'start': events[index].events[0].startTime,
+              'end': events[index].events[0].endTime,
+            },
+            feedback: Material(
+              color: Colors.transparent,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: width - events[index].right - events[index].left,
+                ),
+                child: tile,
+              ),
+            ),
+            childWhenDragging: Opacity(opacity: 0.5, child: tile),
+            child: tile,
+          );
+        }),
       );
     });
   }
@@ -517,7 +577,7 @@ class EventGenerator<T extends Object?> extends StatelessWidget {
 }
 
 /// A widget that allow to long press on calendar.
-class PressDetector extends StatelessWidget {
+class PressDetector extends StatefulWidget {
   /// Height of display area
   final double height;
 
@@ -563,14 +623,27 @@ class PressDetector extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<PressDetector> createState() => _PressDetectorState();
+}
+
+class _PressDetectorState extends State<PressDetector> {
+  Offset? _tapDownPosition;
+  static const double _maxMoveDistance = 6.0;
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final heightPerSlot = minuteSlotSize.minutes * heightPerMinute;
-    final slots =
-        ((Constants.hoursADay - startHour) * 60) ~/ minuteSlotSize.minutes;
+    final heightPerSlot = widget.minuteSlotSize.minutes * widget.heightPerMinute;
+    final slots = ((Constants.hoursADay - widget.startHour) * 60) ~/
+        widget.minuteSlotSize.minutes;
 
     return Container(
-      height: height,
-      width: width,
+      height: widget.height,
+      width: widget.width,
       child: Stack(
         children: [
           for (int i = 0; i < slots; i++)
@@ -578,28 +651,43 @@ class PressDetector extends StatelessWidget {
               top: heightPerSlot * i,
               left: 0,
               right: 0,
-              bottom: height - (heightPerSlot * (i + 1)),
+              bottom: widget.height - (heightPerSlot * (i + 1)),
               child: GestureDetector(
                 behavior: HitTestBehavior.translucent,
-                onTap: () => onDateTap?.call(
-                  DateTime(
-                    date.year,
-                    date.month,
-                    date.day,
-                    0,
-                    minuteSlotSize.minutes * i,
-                  ),
-                ),
-                onLongPress: () => onDateLongPress?.call(
-                  DateTime(
-                    date.year,
-                    date.month,
-                    date.day,
-                    0,
-                    minuteSlotSize.minutes * i,
-                  ),
-                ),
-                child: SizedBox(width: width, height: heightPerSlot),
+                onTapDown: (details) {
+                  _tapDownPosition = details.localPosition;
+                },
+                onTapUp: (details) {
+                  if (_tapDownPosition == null) return;
+                  final moved =
+                      (details.localPosition - _tapDownPosition!).distance;
+                  if (moved > _maxMoveDistance) return;
+                  if (widget.onDateLongPress != null) {
+                    widget.onDateLongPress?.call(
+                      DateTime(
+                        widget.date.year,
+                        widget.date.month,
+                        widget.date.day,
+                        0,
+                        widget.minuteSlotSize.minutes * i,
+                      ),
+                    );
+                  } else {
+                    widget.onDateTap?.call(
+                      DateTime(
+                        widget.date.year,
+                        widget.date.month,
+                        widget.date.day,
+                        0,
+                        widget.minuteSlotSize.minutes * i,
+                      ),
+                    );
+                  }
+                },
+                onTapCancel: () {
+                  _tapDownPosition = null;
+                },
+                child: SizedBox(width: widget.width, height: heightPerSlot),
               ),
             ),
         ],

@@ -227,6 +227,9 @@ class DayView<T extends Object?> extends StatefulWidget {
   /// Flag to keep scrollOffset of pages on page change
   final bool keepScrollOffset;
 
+  /// If true, drag/drop times snap to nearest 5-minute slot.
+  final bool stickyTimeSlot;
+
   /// Main widget for day view.
   const DayView({
     Key? key,
@@ -277,6 +280,7 @@ class DayView<T extends Object?> extends StatefulWidget {
     this.onEventDoubleTap,
     this.endHour = Constants.hoursADay,
     this.keepScrollOffset = false,
+    this.stickyTimeSlot = true,
     this.onTimestampTap,
   })  : assert(!(onHeaderTitleTap != null && dayTitleBuilder != null),
             "can't use [onHeaderTitleTap] & [dayTitleBuilder] simultaneously"),
@@ -498,6 +502,8 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
                             fullDayEventBuilder: _fullDayEventBuilder,
                             showHalfHours: widget.showHalfHours,
                             showQuarterHours: widget.showQuarterHours,
+                            stickyTimeSlot: widget.stickyTimeSlot,
+                            isActivePage: index == _currentIndex,
                             halfHourIndicatorSettings:
                                 _halfHourIndicatorSettings,
                             startHour: widget.startHour,
@@ -687,6 +693,15 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
         boundary: boundary,
         startDuration: startDuration,
         endDuration: endDuration,
+        onTap: widget.onEventTap != null
+            ? () => widget.onEventTap!.call(events, date)
+            : null,
+        onLongPress: widget.onEventLongTap != null
+            ? () => widget.onEventLongTap!.call(events, date)
+            : null,
+        onDoubleTap: widget.onEventDoubleTap != null
+            ? () => widget.onEventDoubleTap!.call(events, date)
+            : null,
       );
 
   /// Default view header builder. This builder will be used if

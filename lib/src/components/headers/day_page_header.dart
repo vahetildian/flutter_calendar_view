@@ -24,6 +24,7 @@ class DayPageHeader extends CalendarPageHeader {
     @Deprecated("Use HeaderStyle to provide background")
     Color backgroundColor = Constants.headerBackground,
     HeaderStyle headerStyle = const HeaderStyle(),
+    Widget? viewSelector,
   }) : super(
           key: key,
           date: date,
@@ -38,6 +39,7 @@ class DayPageHeader extends CalendarPageHeader {
           dateStringBuilder:
               dateStringBuilder ?? DayPageHeader._dayStringBuilder,
           headerStyle: headerStyle,
+          viewSelector: viewSelector,
         );
 
   static String _dayStringBuilder(DateTime date, {DateTime? secondaryDate}) =>

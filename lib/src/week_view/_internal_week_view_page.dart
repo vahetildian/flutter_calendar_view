@@ -125,6 +125,9 @@ class InternalWeekViewPage<T extends Object?> extends StatefulWidget {
 
   final ScrollController weekViewScrollController;
 
+  /// Whether this page is the currently active page in the PageView.
+  final bool isActivePage;
+
   /// First hour displayed in the layout
   final int startHour;
 
@@ -158,6 +161,9 @@ class InternalWeekViewPage<T extends Object?> extends StatefulWidget {
   /// Flag to keep scrollOffset of pages on page change
   final bool keepScrollOffset;
 
+  /// If true, drag/drop times snap to nearest 5-minute slot.
+  final bool stickyTimeSlot;
+
   /// Use this field to disable the calendar scrolling
   final ScrollPhysics? scrollPhysics;
 
@@ -168,12 +174,13 @@ class InternalWeekViewPage<T extends Object?> extends StatefulWidget {
   final Color? backgroundColor;
 
   /// A single page for week view.
-  const InternalWeekViewPage({
+  InternalWeekViewPage({
     Key? key,
     required this.showVerticalLine,
     required this.weekTitleHeight,
     required this.weekDayBuilder,
     required this.weekNumberBuilder,
+    required this.weekDetectorBuilder,
     required this.width,
     required this.dates,
     required this.eventTileBuilder,
@@ -203,7 +210,6 @@ class InternalWeekViewPage<T extends Object?> extends StatefulWidget {
     required this.scrollConfiguration,
     required this.startHour,
     required this.fullDayEventBuilder,
-    required this.weekDetectorBuilder,
     required this.showWeekDayAtBottom,
     required this.showHalfHours,
     required this.showQuarterHours,
@@ -216,6 +222,8 @@ class InternalWeekViewPage<T extends Object?> extends StatefulWidget {
     required this.scrollPhysics,
     required this.scrollListener,
     required this.weekViewScrollController,
+    required this.isActivePage,
+    this.stickyTimeSlot = true,
     this.lastScrollOffset = 0.0,
     this.keepScrollOffset = false,
     this.backgroundColor,
@@ -224,11 +232,16 @@ class InternalWeekViewPage<T extends Object?> extends StatefulWidget {
   @override
   _InternalWeekViewPageState<T> createState() =>
       _InternalWeekViewPageState<T>();
+
+  
+  
+  
+  
 }
 
-class _InternalWeekViewPageState<T extends Object?>
-    extends State<InternalWeekViewPage<T>> {
+class _InternalWeekViewPageState<T> extends State<InternalWeekViewPage<T>> {
   late ScrollController scrollController;
+  late List<GlobalKey> _dayColumnKeys;
 
   @override
   void initState() {
@@ -237,6 +250,7 @@ class _InternalWeekViewPageState<T extends Object?>
       initialScrollOffset: widget.lastScrollOffset,
     );
     scrollController.addListener(_scrollControllerListener);
+    _dayColumnKeys = [];
   }
 
   @override
@@ -358,7 +372,7 @@ class _InternalWeekViewPageState<T extends Object?>
             child: SingleChildScrollView(
               controller: widget.keepScrollOffset
                   ? scrollController
-                  : widget.weekViewScrollController,
+                  : (widget.isActivePage ? widget.weekViewScrollController : null),
               physics: widget.scrollPhysics,
               child: SizedBox(
                 height: widget.height,
@@ -429,9 +443,15 @@ class _InternalWeekViewPageState<T extends Object?>
                         height: widget.height,
                         child: Row(
                           children: [
-                            ...List.generate(
-                              filteredDates.length,
-                              (index) => Container(
+                                    ...List.generate(
+                                      filteredDates.length,
+                                      (index) {
+                                        if (_dayColumnKeys.length != filteredDates.length) {
+                                          _dayColumnKeys = List.generate(
+                                              filteredDates.length, (_) => GlobalKey());
+                                        }
+                                        return Container(
+                                          key: _dayColumnKeys[index],
                                 decoration: widget.showVerticalLine
                                     ? BoxDecoration(
                                         // To apply different colors to the timeline
@@ -491,9 +511,80 @@ class _InternalWeekViewPageState<T extends Object?>
                                       heightPerMinute: widget.heightPerMinute,
                                       endHour: widget.endHour,
                                     ),
+                                    DragTarget<Map<String, dynamic>>(
+                                      onWillAccept: (data) => data != null,
+                                      onAcceptWithDetails: (details) {
+                                        final payload = details.data;
+                                        final event = payload['event'] as CalendarEventData<T>?;
+                                        final start = payload['start'] as DateTime?;
+                                        final end = payload['end'] as DateTime?;
+                                        if (event == null || start == null || end == null) return;
+
+                                        print('[WeekView Drag] Original event: date=${event.date}, endDate=${event.endDate}, startTime=${event.startTime}, endTime=${event.endTime}');
+
+                                        final keyBox = _dayColumnKeys[index].currentContext?.findRenderObject() as RenderBox?;
+                                        final box = keyBox ?? context.findRenderObject() as RenderBox;
+                                        final topLeft = box.localToGlobal(Offset.zero);
+                                        final dy = (details.offset.dy - topLeft.dy).clamp(0.0, widget.height);
+                                        final totalMinutes = (widget.endHour - widget.startHour) * 60;
+                                        final minutesFromTop = (dy / widget.height) * totalMinutes;
+                                        var newStartMinutes =
+                                            (widget.startHour * 60) + minutesFromTop.round();
+                                        if (widget.stickyTimeSlot) {
+                                          newStartMinutes = ((newStartMinutes + 2) ~/ 5) * 5;
+                                        }
+
+                                        final newStart = DateTime(
+                                          widget.dates[index].year,
+                                          widget.dates[index].month,
+                                          widget.dates[index].day,
+                                        ).add(Duration(minutes: newStartMinutes));
+
+                                        final duration = end.difference(start);
+                                        final newEnd = newStart.add(duration);
+
+                                        // Calculate newEndDate based on actual start/end times
+                                        // Check if the actual times span into the next day
+                                        final DateTime newEndDate;
+                                        final DateTime adjustedNewEnd;
+                                        if (newEnd.day > newStart.day || (newEnd.day == 1 && newStart.day > 1)) {
+                                          // Event spans into next day
+                                          // Special case: if newEnd is exactly midnight, it should end on current day at 23:59:59
+                                          if (newEnd.hour == 0 && newEnd.minute == 0 && newEnd.second == 0) {
+                                            // Event ends exactly at midnight - adjust to previous day
+                                            adjustedNewEnd = newEnd.subtract(Duration(seconds: 1));
+                                            newEndDate = DateTime(adjustedNewEnd.year, adjustedNewEnd.month, adjustedNewEnd.day);
+                                          } else {
+                                            adjustedNewEnd = newEnd;
+                                            newEndDate = DateTime(newEnd.year, newEnd.month, newEnd.day);
+                                          }
+                                        } else {
+                                          // Single-day event
+                                          adjustedNewEnd = newEnd;
+                                          newEndDate = DateTime(newStart.year, newStart.month, newStart.day);
+                                        }
+
+                                        final updated = event.copyWith(
+                                          date: widget.dates[index],
+                                          startTime: newStart,
+                                          endTime: adjustedNewEnd,
+                                          endDate: newEndDate,
+                                        );
+
+                                        widget.controller.update(event, updated);
+                                      },
+                                      builder: (context, candidate, rejected) {
+                                        return IgnorePointer(
+                                          child: Container(
+                                            color: Colors.transparent,
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ],
                                 ),
-                              ),
+                                );
+                              },
                             )
                           ],
                         ),
@@ -512,6 +603,7 @@ class _InternalWeekViewPageState<T extends Object?>
                           widget.liveTimeIndicatorSettings,
                       endHour: widget.endHour,
                       onTimestampTap: widget.onTimestampTap,
+                      isActivePage: widget.isActivePage,
                     ),
                     if (widget.showLiveLine &&
                         widget.liveTimeIndicatorSettings.height > 0)
@@ -524,6 +616,7 @@ class _InternalWeekViewPageState<T extends Object?>
                         timeLineWidth: widget.timeLineWidth,
                         startHour: widget.startHour,
                         endHour: widget.endHour,
+                        isActivePage: widget.isActivePage,
                       ),
                   ],
                 ),

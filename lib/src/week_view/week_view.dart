@@ -218,6 +218,9 @@ class WeekView<T extends Object?> extends StatefulWidget {
   ///Show quarter hour indicator
   final bool showQuarterHours;
 
+  /// If true, drag/drop times snap to nearest 5-minute slot.
+  final bool stickyTimeSlot;
+
   ///Emulates offset of vertical line from hour line starts.
   final double emulateVerticalOffsetBy;
 
@@ -296,6 +299,7 @@ class WeekView<T extends Object?> extends StatefulWidget {
     this.onHeaderTitleTap,
     this.showHalfHours = false,
     this.showQuarterHours = false,
+    this.stickyTimeSlot = true,
     this.emulateVerticalOffsetBy = 0,
     this.showWeekDayAtBottom = false,
     this.pageViewPhysics,
@@ -576,6 +580,8 @@ class WeekViewState<T extends Object?> extends State<WeekView<T>> {
                           scrollPhysics: widget.scrollPhysics,
                           scrollListener: _scrollPageListener,
                           keepScrollOffset: widget.keepScrollOffset,
+                          isActivePage: index == _currentIndex,
+                          stickyTimeSlot: widget.stickyTimeSlot,
                         ),
                       );
                     },
@@ -835,6 +841,15 @@ class WeekViewState<T extends Object?> extends State<WeekView<T>> {
         boundary: boundary,
         startDuration: startDuration,
         endDuration: endDuration,
+        onTap: widget.onEventTap != null
+            ? () => widget.onEventTap!.call(events, date)
+            : null,
+        onLongPress: widget.onEventLongTap != null
+            ? () => widget.onEventLongTap!.call(events, date)
+            : null,
+        onDoubleTap: widget.onEventDoubleTap != null
+            ? () => widget.onEventDoubleTap!.call(events, date)
+            : null,
       );
 
   /// Default view header builder. This builder will be used if

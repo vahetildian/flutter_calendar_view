@@ -2,8 +2,6 @@ import 'package:calendar_view/calendar_view.dart';
 import 'package:example/extension.dart';
 import 'package:flutter/material.dart';
 
-import '../widgets/responsive_widget.dart';
-import 'mobile/mobile_home_page.dart';
 import 'web/web_home_page.dart';
 
 DateTime get _now => DateTime.now();
@@ -139,9 +137,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveWidget(
-      mobileWidget: MobileHomePage(onChangeTheme: widget.onChangeTheme),
-      webWidget: WebHomePage(onThemeChange: widget.onChangeTheme),
-    );
+    return WebHomePage(onThemeChange: widget.onChangeTheme);
   }
 }
