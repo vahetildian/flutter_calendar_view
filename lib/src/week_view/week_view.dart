@@ -221,6 +221,11 @@ class WeekView<T extends Object?> extends StatefulWidget {
   /// If true, drag/drop times snap to nearest 5-minute slot.
   final bool stickyTimeSlot;
 
+  /// Minute interval for sticky drag-and-drop snapping.
+  ///
+  /// Used only when [stickyTimeSlot] is true.
+  final int dragSnapMinutes;
+
   ///Emulates offset of vertical line from hour line starts.
   final double emulateVerticalOffsetBy;
 
@@ -300,6 +305,7 @@ class WeekView<T extends Object?> extends StatefulWidget {
     this.showHalfHours = false,
     this.showQuarterHours = false,
     this.stickyTimeSlot = true,
+    this.dragSnapMinutes = 5,
     this.emulateVerticalOffsetBy = 0,
     this.showWeekDayAtBottom = false,
     this.pageViewPhysics,
@@ -332,6 +338,8 @@ class WeekView<T extends Object?> extends StatefulWidget {
           endHour <= Constants.hoursADay || endHour < startHour,
           "End hour must be less than 24 or startHour must be less than endHour",
         ),
+        assert(dragSnapMinutes > 0,
+            "dragSnapMinutes must be greater than 0"),
         super(key: key);
 
   @override
@@ -553,8 +561,7 @@ class WeekViewState<T extends Object?> extends State<WeekView<T>> {
                           quarterHourIndicatorSettings:
                               _quarterHourIndicatorSettings,
                           dates: dates,
-                          showLiveLine: widget.showLiveTimeLineInAllDays ||
-                              _showLiveTimeIndicator(dates),
+                            showLiveLine: _showLiveTimeIndicator(dates),
                           timeLineOffset: widget.timeLineOffset,
                           timeLineWidth: _timeLineWidth,
                           verticalLineOffset: 0,
@@ -574,6 +581,7 @@ class WeekViewState<T extends Object?> extends State<WeekView<T>> {
                               widget.emulateVerticalOffsetBy,
                           showWeekDayAtBottom: widget.showWeekDayAtBottom,
                           endHour: _endHour,
+                            dragSnapMinutes: widget.dragSnapMinutes,
                           fullDayHeaderTitle: _fullDayHeaderTitle,
                           fullDayHeaderTextConfig: _fullDayHeaderTextConfig,
                           lastScrollOffset: _lastScrollOffset,

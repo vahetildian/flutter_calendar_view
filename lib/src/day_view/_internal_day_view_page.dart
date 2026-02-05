@@ -134,6 +134,11 @@ class InternalDayViewPage<T extends Object?> extends StatefulWidget {
   /// If true, drag/drop times snap to nearest 5-minute slot.
   final bool stickyTimeSlot;
 
+  /// Minute interval for sticky drag-and-drop snapping.
+  ///
+  /// Used only when [stickyTimeSlot] is true.
+  final int dragSnapMinutes;
+
   /// Use this field to disable the calendar scrolling
   final ScrollPhysics? scrollPhysics;
 
@@ -183,6 +188,7 @@ class InternalDayViewPage<T extends Object?> extends StatefulWidget {
     this.keepScrollOffset = false,
     this.isActivePage = true,
     this.stickyTimeSlot = true,
+    this.dragSnapMinutes = 5,
   }) : super(key: key);
 
   @override
@@ -235,7 +241,9 @@ class _InternalDayViewPageState<T extends Object?>
             child: SingleChildScrollView(
               controller: widget.keepScrollOffset
                   ? scrollController
-                  : widget.dayViewScrollController,
+                  : (widget.isActivePage
+                      ? widget.dayViewScrollController
+                      : null),
               physics: widget.scrollPhysics,
               child: SizedBox(
                 height: widget.height,
@@ -361,7 +369,11 @@ class _InternalDayViewPageState<T extends Object?>
 
                             var newStartMinutes = widget.startHour * 60 + minutesFromTop;
                             if (widget.stickyTimeSlot) {
-                              newStartMinutes = ((newStartMinutes + 2) ~/ 5) * 5;
+                              final snap = widget.dragSnapMinutes;
+                              final halfSnap = snap ~/ 2;
+                              newStartMinutes =
+                                  ((newStartMinutes + halfSnap) ~/ snap) *
+                                      snap;
                             }
                             final newStart = DateTime(
                               widget.date.year,
@@ -414,6 +426,7 @@ class _InternalDayViewPageState<T extends Object?>
                           widget.liveTimeIndicatorSettings,
                       onTimestampTap: widget.onTimestampTap,
                       isActivePage: widget.isActivePage,
+                      hideOverlappingTimeLabel: widget.showLiveLine,
                     ),
                     if (widget.showLiveLine &&
                         widget.liveTimeIndicatorSettings.height > 0)

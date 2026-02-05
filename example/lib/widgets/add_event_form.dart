@@ -43,17 +43,24 @@ class _AddOrEditEventFormState extends State<AddOrEditEventForm> {
   late final _titleController = TextEditingController();
   late final _titleNode = FocusNode();
   late final _descriptionNode = FocusNode();
+  final _formFocusNode = FocusScopeNode();
 
   @override
   void initState() {
     super.initState();
     _setDefaults();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _formFocusNode.requestFocus(_titleNode);
+      }
+    });
   }
 
   @override
   void dispose() {
     _titleNode.dispose();
     _descriptionNode.dispose();
+    _formFocusNode.dispose();
 
     _descriptionController.dispose();
     _titleController.dispose();
@@ -67,13 +74,17 @@ class _AddOrEditEventFormState extends State<AddOrEditEventForm> {
     final color = Theme.of(context).colorScheme;
     translate = context.translate;
 
-    return Form(
-      key: _form,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+    return FocusScope(
+      node: _formFocusNode,
+      child: Form(
+        key: _form,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           TextFormField(
             controller: _titleController,
+            focusNode: _titleNode,
+            autofocus: true,
             decoration: InputDecoration(
               labelText: translate.eventTitle,
               labelStyle: TextStyle(color: color.onSurfaceVariant),
@@ -514,7 +525,8 @@ class _AddOrEditEventFormState extends State<AddOrEditEventForm> {
                 ? translate.addEvent
                 : translate.updateEvent,
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -42,6 +42,9 @@ class LiveTimeIndicator extends StatefulWidget {
   /// When false, timer will be paused to save CPU.
   final bool isActivePage;
 
+  /// Whether to draw the horizontal line.
+  final bool showLine;
+
   /// Widget to display tile line according to current time.
   const LiveTimeIndicator(
       {Key? key,
@@ -53,7 +56,8 @@ class LiveTimeIndicator extends StatefulWidget {
       required this.startHour,
       this.endHour = Constants.hoursADay,
       this.onlyShowToday = false,
-      this.isActivePage = true})
+      this.isActivePage = true,
+      this.showLine = true})
       : super(key: key);
 
   @override
@@ -125,20 +129,19 @@ class _LiveTimeIndicatorState extends State<LiveTimeIndicator> {
 
   @override
   Widget build(BuildContext context) {
-    final currentHour = _currentTime.hourOfPeriod.appendLeadingZero();
-    final currentMinute = _currentTime.minute.appendLeadingZero();
     final currentPeriod = _currentTime.period == DayPeriod.am
         ? PackageStrings.currentLocale.am
         : PackageStrings.currentLocale.pm;
     final currentDateTime = _getCurrentDateTime();
-    final localizedHour =
-        PackageStrings.localizeNumber(int.tryParse(currentHour) ?? 0);
-    final localizedMinute =
-        PackageStrings.localizeNumber(int.tryParse(currentMinute) ?? 0);
+    final hour12 = _currentTime.hourOfPeriod == 0
+      ? 12
+      : _currentTime.hourOfPeriod;
+    final localizedHour = PackageStrings.localizeNumber(hour12);
+    final paddedMinute = _currentTime.minute.appendLeadingZero();
 
     final timeString = widget.liveTimeIndicatorSettings.timeStringBuilder
             ?.call(currentDateTime) ??
-        '$localizedHour:$localizedMinute $currentPeriod';
+        '$localizedHour:$paddedMinute $currentPeriod';
 
     /// remove startHour minute from [_currentTime.getTotalMinutes]
     /// to set dy offset of live time indicator
@@ -181,7 +184,12 @@ class _LiveTimeIndicatorState extends State<LiveTimeIndicator> {
           bulletRadius: widget.liveTimeIndicatorSettings.bulletRadius,
           timeBackgroundViewWidth:
               widget.liveTimeIndicatorSettings.timeBackgroundViewWidth,
+          timeTextColor: widget.liveTimeIndicatorSettings.timeTextColor,
+          timeTextSize: widget.liveTimeIndicatorSettings.timeTextSize,
+          lineStartInset: widget.liveTimeIndicatorSettings.lineStartInset,
+          lineEndInset: widget.liveTimeIndicatorSettings.lineEndInset,
           textDirection: direction,
+          showLine: widget.showLine,
         ),
       ),
     );
@@ -230,6 +238,9 @@ class TimeLine extends StatefulWidget {
   /// When false, timer will be paused to save CPU.
   final bool isActivePage;
 
+  /// Whether to hide the time label when it overlaps the live time indicator.
+  final bool hideOverlappingTimeLabel;
+
   /// Time line to display time at left side of day or week view.
   const TimeLine({
     Key? key,
@@ -245,6 +256,7 @@ class TimeLine extends StatefulWidget {
     required this.liveTimeIndicatorSettings,
     this.endHour = Constants.hoursADay,
     this.isActivePage = true,
+    this.hideOverlappingTimeLabel = true,
   }) : super(key: key);
 
   @override
@@ -398,11 +410,14 @@ class _TimeLineState extends State<TimeLine> {
       minutes,
     );
 
+    final overlaps =
+      (_currentTime.minute >= 45 && _currentTime.hour == hour - 1) ||
+        (_currentTime.minute <= 15 && _currentTime.hour == hour);
+    final shouldShowTime = widget.liveTimeIndicatorSettings.showTime ||
+      widget.liveTimeIndicatorSettings.showTimeBackgroundView;
     return Visibility(
-      visible: !((_currentTime.minute >= 45 && _currentTime.hour == hour - 1) ||
-              (_currentTime.minute <= 15 && _currentTime.hour == hour)) ||
-          !(widget.liveTimeIndicatorSettings.showTime ||
-              widget.liveTimeIndicatorSettings.showTimeBackgroundView),
+      visible: shouldShowTime &&
+        (!widget.hideOverlappingTimeLabel || !overlaps),
       child: Positioned(
         top: topPosition,
         left: 0,

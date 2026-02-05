@@ -148,10 +148,15 @@ class MultiDayViewWidget extends StatelessWidget {
     return ValueListenableBuilder<FormatSettings>(
       valueListenable: FormatSettingsController.notifier,
       builder: (context, formats, _) {
+        final config = CalendarConfigurationProvider.of(context);
         return MultiDayView(
           key: state,
           stickyTimeSlot: CalendarConfigurationProvider.of(context).stickyTimeSlot,
-          daysInView: 3,
+          daysInView: config.multiDayDaysInView,
+          pageStep: config.multiDayPageStep,
+            dragSnapMinutes:
+              config.multiDayDragSnapMinutes ?? config.dragSnapMinutes,
+          heightPerMinute: config.multiDayHeightPerMinute,
           width: width,
           timeLineBuilder: (date) => _timeLineBuilder(date, isLtr),
           headerStringBuilder: (date, {secondaryDate}) =>
@@ -217,13 +222,8 @@ class MultiDayViewWidget extends StatelessWidget {
             currentTimeProvider: () {
               return FormatSettingsController.applyTimezone(DateTime.now());
             },
-          ),
-          onTimestampTap: (date) {
-            SnackBar snackBar = SnackBar(
-              content: Text("On tap: ${date.hour} Hr : ${date.minute} Min"),
-            );
-            ScaffoldMessenger.of(context).showSnackBar(snackBar);
-          },
+          )
+              .merge(config.multiDayLiveTimeIndicatorSettings),
           onEventTap: showEventSummary,
           onEventLongTap: (events, date) => showLongTapNotice(),
         );

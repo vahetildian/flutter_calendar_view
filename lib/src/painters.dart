@@ -352,6 +352,21 @@ class CurrentTimeLinePainter extends CustomPainter {
   /// Width of time backgroud view.
   final double timeBackgroundViewWidth;
 
+  /// Color of time text. If null, uses default based on background.
+  final Color? timeTextColor;
+
+  /// Font size of time text.
+  final double timeTextSize;
+
+  /// Insets applied to the start of the live time line.
+  final double lineStartInset;
+
+  /// Insets applied to the end of the live time line.
+  final double lineEndInset;
+
+  /// Whether to draw the horizontal line.
+  final bool showLine;
+
   /// Defines directionality
   final TextDirection textDirection;
 
@@ -366,73 +381,116 @@ class CurrentTimeLinePainter extends CustomPainter {
     required this.showTime,
     required this.showTimeBackgroundView,
     required this.timeBackgroundViewWidth,
+    required this.timeTextColor,
+    required this.timeTextSize,
+    required this.lineStartInset,
+    required this.lineEndInset,
     this.textDirection = TextDirection.ltr,
+    this.showLine = true,
   });
   bool get isLtr => textDirection == TextDirection.ltr;
   @override
   void paint(Canvas canvas, Size size) {
-    final startXPoint = isLtr
-        ? offset.dx - (showBullet ? 0 : 8)
-        : offset.dx - (showBullet ? 8 : 0);
-    final endXPoint = size.width - (isLtr ? 0 : timeBackgroundViewWidth);
-    canvas.drawLine(
-      Offset(startXPoint, offset.dy),
-      Offset(endXPoint, offset.dy),
-      Paint()
-        ..color = color
-        ..strokeWidth = height,
-    );
+    final baseStartX = isLtr
+      ? offset.dx - (showBullet ? 0 : 8)
+      : offset.dx - (showBullet ? 8 : 0);
+    final baseEndX = size.width - (isLtr ? 0 : timeBackgroundViewWidth);
+    var startXPoint =
+        baseStartX + (isLtr ? lineStartInset : -lineStartInset);
+    final endXPoint = baseEndX + (isLtr ? -lineEndInset : lineEndInset);
+
+    if (showTimeBackgroundView) {
+      final minStart = timeBackgroundViewWidth + 4;
+      if (isLtr && startXPoint < minStart) {
+        startXPoint = minStart;
+      } else if (!isLtr && startXPoint > size.width - minStart) {
+        startXPoint = size.width - minStart;
+      }
+    }
+    if (showLine) {
+      canvas.drawLine(
+        Offset(startXPoint, offset.dy),
+        Offset(endXPoint, offset.dy),
+        Paint()
+          ..color = color
+          ..strokeWidth = height,
+      );
+    }
+
+    double? bgLeft;
+    double? textX;
+    double? textY;
+    TextPainter? textPainter;
+
+    if (showTime) {
+      if (showTimeBackgroundView) {
+        final dx = isLtr
+            ? startXPoint - timeBackgroundViewWidth - 4
+            : startXPoint + 4;
+        bgLeft = max(3.0, dx).toDouble();
+
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(
+              bgLeft,
+              offset.dy - 11,
+              timeBackgroundViewWidth,
+              24,
+            ),
+            const Radius.circular(12),
+          ),
+          Paint()
+            ..color = color
+            ..style = PaintingStyle.fill
+            ..strokeWidth = bulletRadius,
+        );
+      }
+
+      textPainter = TextPainter(
+        textDirection: TextDirection.ltr,
+        text: TextSpan(
+          text: timeString,
+          style: TextStyle(
+            fontSize: timeTextSize,
+            color: timeTextColor ??
+                (showTimeBackgroundView ? Colors.white : color),
+          ),
+        ),
+      )..layout();
+
+      textX = (showTimeBackgroundView && bgLeft != null
+              ? bgLeft + (timeBackgroundViewWidth - textPainter.width) / 2
+              : (isLtr ? 15.0 : offset.dx + size.width + 15.0))
+          .toDouble();
+      textY = (showTimeBackgroundView
+              ? offset.dy - (textPainter.height / 2)
+              : (isLtr ? offset.dy - 6.0 : offset.dy - 12.0))
+          .toDouble();
+
+      textPainter.paint(
+        canvas,
+        Offset(textX, textY),
+      );
+    }
 
     if (showBullet) {
-      final xPoint = isLtr ? offset.dx : offset.dx + size.width;
+      double xPoint;
+      if (showTimeBackgroundView && bgLeft != null) {
+        xPoint = isLtr
+            ? bgLeft + timeBackgroundViewWidth + 4
+            : bgLeft - 4;
+      } else if (showTime && textPainter != null && textX != null) {
+        xPoint = isLtr
+            ? textX + textPainter.width + 4
+            : textX - 4;
+      } else {
+        xPoint = isLtr ? offset.dx : offset.dx + size.width;
+      }
       canvas.drawCircle(
         Offset(xPoint, offset.dy),
         bulletRadius,
         Paint()..color = color,
       );
-    }
-
-    if (showTimeBackgroundView) {
-      final dx = isLtr
-          ? offset.dx - timeBackgroundViewWidth - 4
-          : offset.dx + size.width;
-
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-            max(3, dx),
-            offset.dy - 11,
-            timeBackgroundViewWidth,
-            24,
-          ),
-          const Radius.circular(12),
-        ),
-        Paint()
-          ..color = color
-          ..style = PaintingStyle.fill
-          ..strokeWidth = bulletRadius,
-      );
-    }
-
-    if (showTime) {
-      TextPainter(
-        textDirection: TextDirection.ltr,
-        text: TextSpan(
-          text: timeString,
-          style: TextStyle(
-            fontSize: 12,
-            color: showTimeBackgroundView ? Colors.white : color,
-          ),
-        ),
-      )
-        ..layout()
-        ..paint(
-          canvas,
-          Offset(
-            isLtr ? 15 : offset.dx + size.width + 15,
-            isLtr ? offset.dy - 6.0 : offset.dy - 12.0,
-          ),
-        );
     }
   }
 
@@ -447,5 +505,6 @@ class CurrentTimeLinePainter extends CustomPainter {
           timeBackgroundViewWidth != oldDelegate.timeBackgroundViewWidth ||
           showBullet != oldDelegate.showBullet ||
           showTime != oldDelegate.showTime ||
-          showTimeBackgroundView != oldDelegate.showTimeBackgroundView);
+          showTimeBackgroundView != oldDelegate.showTimeBackgroundView ||
+          showLine != oldDelegate.showLine);
 }

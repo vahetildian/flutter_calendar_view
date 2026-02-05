@@ -1,3 +1,4 @@
+import 'package:calendar_view/calendar_view.dart';
 import 'package:flutter/material.dart';
 
 import '../config/calendar_form_config.dart';
@@ -12,10 +13,39 @@ import 'month_view_widget.dart';
 import 'multi_day_view_widget.dart';
 import 'week_view_widget.dart';
 
-class CalendarViews extends StatelessWidget {
+class CalendarViews extends StatefulWidget {
   final CalendarView view;
 
   const CalendarViews({super.key, this.view = CalendarView.month});
+
+  @override
+  State<CalendarViews> createState() => _CalendarViewsState();
+}
+
+class _CalendarViewsState extends State<CalendarViews> {
+  final GlobalKey<DayViewState> _dayViewKey = GlobalKey<DayViewState>();
+  final GlobalKey<WeekViewState> _weekViewKey = GlobalKey<WeekViewState>();
+  final GlobalKey<MultiDayViewState> _multiDayViewKey =
+      GlobalKey<MultiDayViewState>();
+  final GlobalKey<MonthViewState> _monthViewKey = GlobalKey<MonthViewState>();
+
+  void _jumpToToday() {
+    final now = DateTime.now();
+    switch (widget.view) {
+      case CalendarView.day:
+        _dayViewKey.currentState?.jumpToDate(now);
+        break;
+      case CalendarView.week:
+        _weekViewKey.currentState?.jumpToWeek(now);
+        break;
+      case CalendarView.threeDays:
+        _multiDayViewKey.currentState?.jumpToWeek(now);
+        break;
+      case CalendarView.month:
+        _monthViewKey.currentState?.jumpToMonth(now);
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +86,7 @@ class CalendarViews extends StatelessWidget {
     }
 
     Widget _buildSelectorItem(ViewSelectorItem item) {
-      final isActive = view == item.view;
+      final isActive = widget.view == item.view;
       final color = isActive ? activeColor : inactiveColor;
       final iconWidget = item.image != null
           ? Image(
@@ -89,6 +119,27 @@ class CalendarViews extends StatelessWidget {
       );
     }
 
+    Widget _buildTodayButton() {
+      final color = activeColor;
+      return Tooltip(
+        message: 'Today',
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _jumpToToday,
+            child: Padding(
+              padding: selectorStyle.buttonPadding,
+              child: Icon(
+                Icons.today,
+                size: selectorStyle.iconSize,
+                color: color,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final viewSelectorWidget = availableWidth > minWidthForButtons
         ? (config.showViewSelectorIcons
             ? Padding(
@@ -96,12 +147,26 @@ class CalendarViews extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    if (selectorStyle.showTodayButton &&
+                        selectorStyle.todayButtonPosition ==
+                            TodayButtonPosition.left) ...[
+                      _buildTodayButton(),
+                      if (config.viewSelectorConfig.items.isNotEmpty)
+                        SizedBox(width: selectorStyle.spacing),
+                    ],
                     for (int i = 0;
                         i < config.viewSelectorConfig.items.length;
                         i++) ...[
                       _buildSelectorItem(config.viewSelectorConfig.items[i]),
                       if (i != config.viewSelectorConfig.items.length - 1)
                         SizedBox(width: selectorStyle.spacing),
+                    ],
+                    if (selectorStyle.showTodayButton &&
+                        selectorStyle.todayButtonPosition ==
+                            TodayButtonPosition.right) ...[
+                      if (config.viewSelectorConfig.items.isNotEmpty)
+                        SizedBox(width: selectorStyle.spacing),
+                      _buildTodayButton(),
                     ],
                   ],
                 ),
@@ -160,13 +225,13 @@ class CalendarViews extends StatelessWidget {
           width: double.infinity,
           color: AppColors.grey,
           child: Center(
-            child: view == CalendarView.month
-              ? MonthViewWidget(width: width)
-              : view == CalendarView.day
-                ? DayViewWidget(width: width)
-                : view == CalendarView.threeDays
-                  ? MultiDayViewWidget(width: width)
-                  : WeekViewWidget(width: width),
+            child: widget.view == CalendarView.month
+              ? MonthViewWidget(state: _monthViewKey, width: width)
+              : widget.view == CalendarView.day
+                ? DayViewWidget(state: _dayViewKey, width: width)
+                : widget.view == CalendarView.threeDays
+                  ? MultiDayViewWidget(state: _multiDayViewKey, width: width)
+                  : WeekViewWidget(state: _weekViewKey, width: width),
           ),
         ),
         if (config.showViewSelector)

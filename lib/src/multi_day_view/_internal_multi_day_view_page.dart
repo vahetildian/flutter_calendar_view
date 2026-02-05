@@ -309,6 +309,7 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
             width: widget.width,
             child: Container(
               decoration: BoxDecoration(
+                      color: themeColor.pageBackgroundColor,
                 border: Border(
                   bottom: BorderSide(
                     color: themeColor.borderColor,
@@ -332,9 +333,12 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
                               widget.fullDayHeaderTitle,
                               textAlign:
                                   widget.fullDayHeaderTextConfig.textAlign,
-                              maxLines: widget.fullDayHeaderTextConfig.maxLines,
-                              overflow:
-                                  widget.fullDayHeaderTextConfig.textOverflow,
+                                   maxLines: widget.fullDayHeaderTextConfig.maxLines,
+                                   overflow:
+                                       widget.fullDayHeaderTextConfig.textOverflow,
+                                   style: TextStyle(
+                                     color: themeColor.multiDayTextColor,
+                                   ),
                             ),
                           )
                         : SizedBox.shrink(),
@@ -571,29 +575,6 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
                                         );
                                       },
                                     ),
-                                    if (widget.showLiveLine &&
-                                        widget.liveTimeIndicatorSettings
-                                                .height >
-                                            0 &&
-                                        widget.liveTimeIndicatorSettings
-                                            .onlyShowToday)
-                                      if (DateUtils.isSameDay(
-                                          widget.dates[index], DateTime.now()))
-                                        LiveTimeIndicator(
-                                          liveTimeIndicatorSettings:
-                                              widget.liveTimeIndicatorSettings,
-                                          width: widget.width,
-                                          height: widget.height,
-                                          heightPerMinute:
-                                              widget.heightPerMinute,
-                                          timeLineWidth: widget.timeLineWidth,
-                                          startHour: widget.startHour,
-                                          endHour: widget.endHour,
-                                          onlyShowToday: widget
-                                              .liveTimeIndicatorSettings
-                                              .onlyShowToday,
-                                          isActivePage: widget.isActivePage,
-                                        ),
                                   ],
                                 ),
                                 );
@@ -620,15 +601,14 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
                     ),
                     if (widget.showLiveLine &&
                         widget.liveTimeIndicatorSettings.height > 0 &&
-                        !widget.liveTimeIndicatorSettings.onlyShowToday)
+                        (!widget.liveTimeIndicatorSettings.onlyShowToday ||
+                            filteredDates.any(
+                              (date) =>
+                                  DateUtils.isSameDay(date, DateTime.now()),
+                            )))
                       LiveTimeIndicator(
-                        liveTimeIndicatorSettings: LiveTimeIndicatorSettings(
-                          color: themeColor.liveIndicatorColor,
-                          height: widget.liveTimeIndicatorSettings.height,
-                          offset: widget.liveTimeIndicatorSettings.offset,
-                          onlyShowToday:
-                              widget.liveTimeIndicatorSettings.onlyShowToday,
-                        ),
+                        liveTimeIndicatorSettings:
+                            widget.liveTimeIndicatorSettings,
                         width: widget.width,
                         height: widget.height,
                         heightPerMinute: widget.heightPerMinute,

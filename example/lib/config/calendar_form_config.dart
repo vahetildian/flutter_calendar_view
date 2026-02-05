@@ -24,6 +24,18 @@ class CalendarConfiguration {
   final WeekViewColors? weekViewColors;
   final MonthViewColors? monthViewColors;
   final MultiDayViewColors? multiDayViewColors;
+  final LiveTimeIndicatorSettings? dayLiveTimeIndicatorSettings;
+  final LiveTimeIndicatorSettings? weekLiveTimeIndicatorSettings;
+  final LiveTimeIndicatorSettings? multiDayLiveTimeIndicatorSettings;
+  final double dayHeightPerMinute;
+  final double weekHeightPerMinute;
+  final double multiDayHeightPerMinute;
+  final int multiDayDaysInView;
+  final int multiDayPageStep;
+  final int dragSnapMinutes;
+  final int? multiDayDragSnapMinutes;
+  final int? dayDragSnapMinutes;
+  final int? weekDragSnapMinutes;
 
   const CalendarConfiguration({
     this.isDescriptionRequired = false,
@@ -48,6 +60,18 @@ class CalendarConfiguration {
     this.weekViewColors,
     this.monthViewColors,
     this.multiDayViewColors,
+    this.dayLiveTimeIndicatorSettings,
+    this.weekLiveTimeIndicatorSettings,
+    this.multiDayLiveTimeIndicatorSettings,
+    this.dayHeightPerMinute = 3,
+    this.weekHeightPerMinute = 1,
+    this.multiDayHeightPerMinute = 1,
+    this.multiDayDaysInView = 3,
+    this.multiDayPageStep = 1,
+    this.dragSnapMinutes = 5,
+    this.multiDayDragSnapMinutes,
+    this.dayDragSnapMinutes,
+    this.weekDragSnapMinutes,
   });
 }
 
@@ -73,6 +97,8 @@ class ViewSelectorStyle {
   final Color? activeColor;
   final Color? inactiveColor;
   final ViewSelectorPosition position;
+  final bool showTodayButton;
+  final TodayButtonPosition todayButtonPosition;
 
   const ViewSelectorStyle({
     this.iconSize = 18,
@@ -82,10 +108,17 @@ class ViewSelectorStyle {
     this.activeColor,
     this.inactiveColor,
     this.position = ViewSelectorPosition.right,
+    this.showTodayButton = true,
+    this.todayButtonPosition = TodayButtonPosition.right,
   });
 }
 
 enum ViewSelectorPosition {
+  left,
+  right,
+}
+
+enum TodayButtonPosition {
   left,
   right,
 }
@@ -351,7 +384,31 @@ class CalendarConfigurationProvider extends InheritedWidget {
       configuration.monthViewColors !=
         oldWidget.configuration.monthViewColors ||
       configuration.multiDayViewColors !=
-        oldWidget.configuration.multiDayViewColors;
+        oldWidget.configuration.multiDayViewColors ||
+      configuration.dayLiveTimeIndicatorSettings !=
+        oldWidget.configuration.dayLiveTimeIndicatorSettings ||
+      configuration.weekLiveTimeIndicatorSettings !=
+        oldWidget.configuration.weekLiveTimeIndicatorSettings ||
+      configuration.multiDayLiveTimeIndicatorSettings !=
+        oldWidget.configuration.multiDayLiveTimeIndicatorSettings ||
+      configuration.dayHeightPerMinute !=
+        oldWidget.configuration.dayHeightPerMinute ||
+      configuration.weekHeightPerMinute !=
+        oldWidget.configuration.weekHeightPerMinute ||
+      configuration.multiDayHeightPerMinute !=
+        oldWidget.configuration.multiDayHeightPerMinute ||
+      configuration.multiDayDaysInView !=
+        oldWidget.configuration.multiDayDaysInView ||
+      configuration.multiDayPageStep !=
+        oldWidget.configuration.multiDayPageStep ||
+      configuration.dragSnapMinutes !=
+        oldWidget.configuration.dragSnapMinutes ||
+      configuration.multiDayDragSnapMinutes !=
+        oldWidget.configuration.multiDayDragSnapMinutes ||
+      configuration.dayDragSnapMinutes !=
+        oldWidget.configuration.dayDragSnapMinutes ||
+      configuration.weekDragSnapMinutes !=
+        oldWidget.configuration.weekDragSnapMinutes;
   }
 }
 

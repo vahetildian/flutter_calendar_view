@@ -96,15 +96,17 @@ class DayViewWidget extends StatelessWidget {
     return ValueListenableBuilder<FormatSettings>(
       valueListenable: FormatSettingsController.notifier,
       builder: (context, formats, _) {
+        final config = CalendarConfigurationProvider.of(context);
         return DayView(
           key: state,
           stickyTimeSlot: CalendarConfigurationProvider.of(context).stickyTimeSlot,
+          dragSnapMinutes: config.dayDragSnapMinutes ?? config.dragSnapMinutes,
           width: width,
           dateStringBuilder: (date, {secondaryDate}) =>
               date.dateToStringWithDateStampFormat(format: formats.dateFormat),
           startDuration: Duration(hours: 8),
           showHalfHours: true,
-          heightPerMinute: 3,
+          heightPerMinute: config.dayHeightPerMinute,
           timeLineBuilder: (date) => _timeLineBuilder(date, isLtr),
           onDateLongPress: (date) {
             showDialog(
@@ -162,12 +164,6 @@ class DayViewWidget extends StatelessWidget {
           hourIndicatorSettings: HourIndicatorSettings(
             color: Theme.of(context).dividerColor,
           ),
-          onTimestampTap: (date) {
-            SnackBar snackBar = SnackBar(
-              content: Text("On tap: ${date.hour} Hr : ${date.minute} Min"),
-            );
-            ScaffoldMessenger.of(context).showSnackBar(snackBar);
-          },
           onEventTap: showEventSummary,
           onEventLongTap: (events, date) => showLongTapNotice(),
           halfHourIndicatorSettings: HourIndicatorSettings(
@@ -187,7 +183,8 @@ class DayViewWidget extends StatelessWidget {
             currentTimeProvider: () {
               return FormatSettingsController.applyTimezone(DateTime.now());
             },
-          ),
+          )
+              .merge(config.dayLiveTimeIndicatorSettings),
         );
       },
     );

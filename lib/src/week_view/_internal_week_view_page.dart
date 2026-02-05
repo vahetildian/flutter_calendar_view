@@ -164,6 +164,11 @@ class InternalWeekViewPage<T extends Object?> extends StatefulWidget {
   /// If true, drag/drop times snap to nearest 5-minute slot.
   final bool stickyTimeSlot;
 
+  /// Minute interval for sticky drag-and-drop snapping.
+  ///
+  /// Used only when [stickyTimeSlot] is true.
+  final int dragSnapMinutes;
+
   /// Use this field to disable the calendar scrolling
   final ScrollPhysics? scrollPhysics;
 
@@ -224,6 +229,7 @@ class InternalWeekViewPage<T extends Object?> extends StatefulWidget {
     required this.weekViewScrollController,
     required this.isActivePage,
     this.stickyTimeSlot = true,
+    this.dragSnapMinutes = 5,
     this.lastScrollOffset = 0.0,
     this.keepScrollOffset = false,
     this.backgroundColor,
@@ -270,6 +276,8 @@ class _InternalWeekViewPageState<T> extends State<InternalWeekViewPage<T>> {
     final filteredDates = _filteredDate();
     final themeColor = context.weekViewColors;
     final direction = Directionality.of(context);
+    final todayIndex = filteredDates
+      .indexWhere((date) => date.compareWithoutTime(DateTime.now()));
 
     return Container(
       color: widget.backgroundColor ?? themeColor.pageBackgroundColor,
@@ -522,16 +530,26 @@ class _InternalWeekViewPageState<T> extends State<InternalWeekViewPage<T>> {
 
                                         print('[WeekView Drag] Original event: date=${event.date}, endDate=${event.endDate}, startTime=${event.startTime}, endTime=${event.endTime}');
 
-                                        final keyBox = _dayColumnKeys[index].currentContext?.findRenderObject() as RenderBox?;
-                                        final box = keyBox ?? context.findRenderObject() as RenderBox;
-                                        final topLeft = box.localToGlobal(Offset.zero);
-                                        final dy = (details.offset.dy - topLeft.dy).clamp(0.0, widget.height);
+                                        final renderObject =
+                                          _dayColumnKeys[index].currentContext
+                                            ?.findRenderObject();
+                                        if (renderObject is! RenderBox) return;
+
+                                        final localOffset =
+                                          renderObject.globalToLocal(details.offset);
+                                        final dy = localOffset.dy
+                                          .clamp(0.0, widget.height);
                                         final totalMinutes = (widget.endHour - widget.startHour) * 60;
                                         final minutesFromTop = (dy / widget.height) * totalMinutes;
                                         var newStartMinutes =
                                             (widget.startHour * 60) + minutesFromTop.round();
                                         if (widget.stickyTimeSlot) {
-                                          newStartMinutes = ((newStartMinutes + 2) ~/ 5) * 5;
+                                          final snap = widget.dragSnapMinutes;
+                                          final halfSnap = snap ~/ 2;
+                                          newStartMinutes =
+                                              ((newStartMinutes + halfSnap) ~/
+                                                      snap) *
+                                                  snap;
                                         }
 
                                         final newStart = DateTime(
@@ -564,11 +582,37 @@ class _InternalWeekViewPageState<T> extends State<InternalWeekViewPage<T>> {
                                           newEndDate = DateTime(newStart.year, newStart.month, newStart.day);
                                         }
 
+                                        RecurrenceSettings? updatedRecurrenceSettings;
+                                        if (event.isRecurringEvent) {
+                                          final oldStartDate =
+                                              event.date.withoutTime;
+                                          final newStartDate =
+                                              widget.dates[index].withoutTime;
+                                          final startDateDelta =
+                                              newStartDate.difference(oldStartDate);
+                                          final oldRecurrenceEndDate = event
+                                              .recurrenceSettings?.endDate
+                                              ?.withoutTime;
+                                          final newRecurrenceEndDate =
+                                              oldRecurrenceEndDate == null
+                                                  ? null
+                                                  : oldRecurrenceEndDate
+                                                      .add(startDateDelta);
+                                          updatedRecurrenceSettings = event
+                                              .recurrenceSettings
+                                              ?.copyWith(
+                                            startDate: newStartDate,
+                                            endDate: newRecurrenceEndDate,
+                                          );
+                                        }
+
                                         final updated = event.copyWith(
                                           date: widget.dates[index],
                                           startTime: newStart,
                                           endTime: adjustedNewEnd,
                                           endDate: newEndDate,
+                                          recurrenceSettings:
+                                              updatedRecurrenceSettings,
                                         );
 
                                         widget.controller.update(event, updated);
@@ -604,12 +648,23 @@ class _InternalWeekViewPageState<T> extends State<InternalWeekViewPage<T>> {
                       endHour: widget.endHour,
                       onTimestampTap: widget.onTimestampTap,
                       isActivePage: widget.isActivePage,
+                      hideOverlappingTimeLabel: widget.showLiveLine,
                     ),
                     if (widget.showLiveLine &&
                         widget.liveTimeIndicatorSettings.height > 0)
                       LiveTimeIndicator(
                         liveTimeIndicatorSettings:
-                            widget.liveTimeIndicatorSettings,
+                          widget.liveTimeIndicatorSettings.copyWith(
+                            lineEndInset: todayIndex < 0
+                              ? 0.0
+                              : (() {
+                                final inset = widget.width -
+                                  (widget.timeLineWidth +
+                                    (widget.weekTitleWidth *
+                                      (todayIndex + 1)));
+                                return inset < 0 ? 0.0 : inset;
+                              })(),
+                          ),
                         width: widget.width,
                         height: widget.height,
                         heightPerMinute: widget.heightPerMinute,
@@ -617,6 +672,7 @@ class _InternalWeekViewPageState<T> extends State<InternalWeekViewPage<T>> {
                         startHour: widget.startHour,
                         endHour: widget.endHour,
                         isActivePage: widget.isActivePage,
+                        showLine: todayIndex >= 0,
                       ),
                   ],
                 ),

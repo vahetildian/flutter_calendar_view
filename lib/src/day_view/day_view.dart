@@ -230,6 +230,11 @@ class DayView<T extends Object?> extends StatefulWidget {
   /// If true, drag/drop times snap to nearest 5-minute slot.
   final bool stickyTimeSlot;
 
+  /// Minute interval for sticky drag-and-drop snapping.
+  ///
+  /// Used only when [stickyTimeSlot] is true.
+  final int dragSnapMinutes;
+
   /// Main widget for day view.
   const DayView({
     Key? key,
@@ -281,6 +286,7 @@ class DayView<T extends Object?> extends StatefulWidget {
     this.endHour = Constants.hoursADay,
     this.keepScrollOffset = false,
     this.stickyTimeSlot = true,
+    this.dragSnapMinutes = 5,
     this.onTimestampTap,
   })  : assert(!(onHeaderTitleTap != null && dayTitleBuilder != null),
             "can't use [onHeaderTitleTap] & [dayTitleBuilder] simultaneously"),
@@ -305,6 +311,8 @@ class DayView<T extends Object?> extends StatefulWidget {
           endHour <= Constants.hoursADay || endHour < startHour,
           "End hour must be less than 24 or startHour must be less than endHour",
         ),
+        assert(dragSnapMinutes > 0,
+            "dragSnapMinutes must be greater than 0"),
         super(key: key);
 
   @override
@@ -487,8 +495,8 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
                             onDateLongPress: widget.onDateLongPress,
                             onDateTap: widget.onDateTap,
                             onTileDoubleTap: widget.onEventDoubleTap,
-                            showLiveLine: widget.showLiveTimeLineInAllDays ||
-                                date.compareWithoutTime(DateTime.now()),
+                            showLiveLine:
+                              date.compareWithoutTime(DateTime.now()),
                             timeLineOffset: widget.timeLineOffset,
                             timeLineWidth: _timeLineWidth,
                             verticalLineOffset: widget.verticalLineOffset,
@@ -503,6 +511,7 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
                             showHalfHours: widget.showHalfHours,
                             showQuarterHours: widget.showQuarterHours,
                             stickyTimeSlot: widget.stickyTimeSlot,
+                            dragSnapMinutes: widget.dragSnapMinutes,
                             isActivePage: index == _currentIndex,
                             halfHourIndicatorSettings:
                                 _halfHourIndicatorSettings,

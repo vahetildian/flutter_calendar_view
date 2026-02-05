@@ -62,6 +62,18 @@ class LiveTimeIndicatorSettings {
   /// Width of time backgroud view.
   final double timeBackgroundViewWidth;
 
+  /// Color of time text. If null, uses default based on background.
+  final Color? timeTextColor;
+
+  /// Font size of time text.
+  final double timeTextSize;
+
+  /// Insets applied to the start of the live time line.
+  final double lineStartInset;
+
+  /// Insets applied to the end of the live time line.
+  final double lineEndInset;
+
   /// Function that provides the DateTime to be used for the live time indicator.
   ///
   /// If not provided, [DateTime.now] will be used as the default behavior.
@@ -90,6 +102,10 @@ class LiveTimeIndicatorSettings {
     this.showTimeBackgroundView = false,
     this.bulletRadius = 5.0,
     this.timeBackgroundViewWidth = 60.0,
+    this.timeTextColor,
+    this.timeTextSize = 12.0,
+    this.lineStartInset = 0.0,
+    this.lineEndInset = 0.0,
     this.currentTimeProvider,
     this.onlyShowToday = false,
   }) : assert(height >= 0, "Height must be greater than or equal to 0.");
@@ -100,6 +116,65 @@ class LiveTimeIndicatorSettings {
         offset: 0.0,
         showBullet: false,
       );
+
+  LiveTimeIndicatorSettings copyWith({
+    Color? color,
+    double? height,
+    double? offset,
+    StringProvider? timeStringBuilder,
+    bool? showBullet,
+    bool? showTime,
+    bool? showTimeBackgroundView,
+    double? bulletRadius,
+    double? timeBackgroundViewWidth,
+    Color? timeTextColor,
+    double? timeTextSize,
+    double? lineStartInset,
+    double? lineEndInset,
+    DateTime Function()? currentTimeProvider,
+    bool? onlyShowToday,
+  }) {
+    return LiveTimeIndicatorSettings(
+      color: color ?? this.color,
+      height: height ?? this.height,
+      offset: offset ?? this.offset,
+      timeStringBuilder: timeStringBuilder ?? this.timeStringBuilder,
+      showBullet: showBullet ?? this.showBullet,
+      showTime: showTime ?? this.showTime,
+      showTimeBackgroundView:
+          showTimeBackgroundView ?? this.showTimeBackgroundView,
+      bulletRadius: bulletRadius ?? this.bulletRadius,
+      timeBackgroundViewWidth:
+          timeBackgroundViewWidth ?? this.timeBackgroundViewWidth,
+      timeTextColor: timeTextColor ?? this.timeTextColor,
+      timeTextSize: timeTextSize ?? this.timeTextSize,
+      lineStartInset: lineStartInset ?? this.lineStartInset,
+      lineEndInset: lineEndInset ?? this.lineEndInset,
+      currentTimeProvider: currentTimeProvider ?? this.currentTimeProvider,
+      onlyShowToday: onlyShowToday ?? this.onlyShowToday,
+    );
+  }
+
+  LiveTimeIndicatorSettings merge(LiveTimeIndicatorSettings? other) {
+    if (other == null) return this;
+    return copyWith(
+      color: other.color,
+      height: other.height,
+      offset: other.offset,
+      timeStringBuilder: other.timeStringBuilder,
+      showBullet: other.showBullet,
+      showTime: other.showTime,
+      showTimeBackgroundView: other.showTimeBackgroundView,
+      bulletRadius: other.bulletRadius,
+      timeBackgroundViewWidth: other.timeBackgroundViewWidth,
+      timeTextColor: other.timeTextColor,
+      timeTextSize: other.timeTextSize,
+      lineStartInset: other.lineStartInset,
+      lineEndInset: other.lineEndInset,
+      currentTimeProvider: other.currentTimeProvider,
+      onlyShowToday: other.onlyShowToday,
+    );
+  }
 }
 
 /// Set `frequency = RepeatFrequency.daily` to repeat every day

@@ -12,78 +12,56 @@ import 'format_settings.dart';
 import 'l10n/app_localizations.dart';
 import 'localization/calendar_locales.dart';
 import 'localization/locale_controller.dart';
-import 'pages/home_page.dart';
+import 'pages/web/web_home_page.dart';
 import 'theme/app_colors.dart';
 import 'theme/dark_app_colors.dart';
 
-// Configure these parameters to control the calendar behavior
-const bool defaultIsDarkMode = false;
+const bool defaultIsDarkMode = true;
 
-// View selector colors
-final Color viewSelectorActiveColor =
-  defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
-final Color viewSelectorInactiveColor = defaultIsDarkMode
-  ? DarkAppColors.outlineVariant
-  : AppColors.outlineVariant;
+// View selector & Today button
+final Color viewSelectorActiveColor = defaultIsDarkMode ? AppColors.white : AppColors.white;
+final Color viewSelectorInactiveColor = defaultIsDarkMode ? DarkAppColors.outlineVariant : AppColors.outlineVariant;
+final bool showTodayButton = true;
+final TodayButtonPosition todayButtonPosition = TodayButtonPosition.left;
 
 // Day view colors
-final Color dayHourLineColor =
-  defaultIsDarkMode ? DarkAppColors.outlineVariant : AppColors.outlineVariant;
+final Color dayHourLineColor = defaultIsDarkMode ? DarkAppColors.outlineVariant : AppColors.outlineVariant;
 final Color dayHalfHourLineColor = dayHourLineColor;
 final Color dayQuarterHourLineColor = dayHourLineColor;
-final Color dayPageBackgroundColor =
-  defaultIsDarkMode ? Colors.black : AppColors.white;
-final Color dayLiveIndicatorColor =
-  defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
-final Color dayHeaderIconColor =
-  defaultIsDarkMode ? DarkAppColors.onPrimary : AppColors.onPrimary;
+final Color dayPageBackgroundColor = defaultIsDarkMode ? Colors.black : AppColors.white;
+final Color dayLiveIndicatorColor = defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
+final Color dayHeaderIconColor = defaultIsDarkMode ? DarkAppColors.onPrimary : AppColors.onPrimary;
 final Color dayHeaderTextColor = dayHeaderIconColor;
-final Color dayHeaderBackgroundColor =
-  defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
-final Color dayTimelineTextColor =
-  defaultIsDarkMode ? Colors.white : AppColors.black;
+final Color dayHeaderBackgroundColor = defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
+final Color dayTimelineTextColor = defaultIsDarkMode ? Colors.white : AppColors.black;
 
 // Week view colors
-final Color weekDayTileColor = defaultIsDarkMode
-  ? DarkAppColors.outlineVariant
-  : AppColors.bluishGrey;
-final Color weekDayTextColor =
-  defaultIsDarkMode ? Colors.white : AppColors.black;
-final Color weekHourLineColor =
-  defaultIsDarkMode ? DarkAppColors.outlineVariant : AppColors.outlineVariant;
+final Color weekDayTileColor = defaultIsDarkMode ? DarkAppColors.outlineVariant : AppColors.bluishGrey;
+final Color weekDayTextColor = defaultIsDarkMode ? Colors.white : AppColors.black;
+final Color weekHourLineColor = defaultIsDarkMode ? DarkAppColors.outlineVariant : AppColors.outlineVariant;
 final Color weekHalfHourLineColor = weekHourLineColor;
 final Color weekQuarterHourLineColor = weekHourLineColor;
-final Color weekLiveIndicatorColor =
-  defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
-final Color weekPageBackgroundColor =
-  defaultIsDarkMode ? Colors.black : AppColors.white;
-final Color weekHeaderIconColor =
-  defaultIsDarkMode ? DarkAppColors.onPrimary : AppColors.onPrimary;
+final Color weekLiveIndicatorColor = defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
+final Color weekPageBackgroundColor = defaultIsDarkMode ? Colors.black : AppColors.white;
+final Color weekHeaderIconColor = defaultIsDarkMode ? DarkAppColors.onPrimary : AppColors.onPrimary;
 final Color weekHeaderTextColor = weekHeaderIconColor;
-final Color weekHeaderBackgroundColor =
-  defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
+final Color weekHeaderBackgroundColor = defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
 final Color weekTimelineTextColor = weekDayTextColor;
 final Color weekBorderColor = weekHourLineColor;
 final Color weekVerticalLinesColor = weekHourLineColor;
 
 // Month view colors
-final Color monthCellInMonthColor =
-  defaultIsDarkMode ? Colors.black : AppColors.white;
-final Color monthCellNotInMonthColor = defaultIsDarkMode
-  ? DarkAppColors.outlineVariant
-  : AppColors.grey;
-final Color monthCellTextColor =
-  defaultIsDarkMode ? Colors.white : AppColors.black;
-final Color monthCellBorderColor =
-  defaultIsDarkMode ? DarkAppColors.outlineVariant : AppColors.outlineVariant;
+final Color monthCellInMonthColor = defaultIsDarkMode ? Colors.black : AppColors.white;
+final Color monthCellNotInMonthColor = defaultIsDarkMode ? DarkAppColors.outlineVariant : AppColors.grey;
+final Color monthCellTextColor = defaultIsDarkMode ? Colors.white : AppColors.black;
+final Color monthCellBorderColor = defaultIsDarkMode ? DarkAppColors.outlineVariant : AppColors.outlineVariant;
 final Color monthWeekDayTileColor = weekDayTileColor;
 final Color monthWeekDayTextColor = weekDayTextColor;
 final Color monthWeekDayBorderColor = monthCellBorderColor;
 final Color monthHeaderIconColor = weekHeaderIconColor;
 final Color monthHeaderTextColor = weekHeaderTextColor;
 final Color monthHeaderBackgroundColor = weekHeaderBackgroundColor;
-final Color monthCellHighlightColor =
-  defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
+final Color monthCellHighlightColor = defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
 
 // Multi-day view colors
 final Color multiDayTileColor = weekDayTileColor;
@@ -100,6 +78,37 @@ final Color multiDayTimelineTextColor = weekTimelineTextColor;
 final Color multiDayBorderColor = weekBorderColor;
 final Color multiDayVerticalLinesColor = weekVerticalLinesColor;
 
+// View layout & interaction
+final int multiDayDaysInView = 5;
+final int multiDayPageStep = 7;
+final int dragSnapMinutes = 10;
+final int? multiDayDragSnapMinutes = null;
+final int? dayDragSnapMinutes = null;
+final int? weekDragSnapMinutes = null;
+final double dayHeightPerMinute = 1;
+final double weekHeightPerMinute = 1;
+final double multiDayHeightPerMinute = 1;
+
+// Current time indicator controls
+final bool showCurrentTimeText = true;
+final bool showCurrentTimeBackground = true;
+final Color currentTimeLineColor = defaultIsDarkMode ? AppColors.primary : AppColors.primary;
+final double currentTimeLineHeight = 1.0;
+final double currentTimeLineStartInset = 0.0;
+final double currentTimeLineEndInset = 0.0;
+
+final Color currentTimeTextColor = defaultIsDarkMode ? AppColors.white : AppColors.black;
+final double currentTimeTextSize = 12.0;
+final double currentTimeBackgroundWidth = 60.0;
+final double currentTimeBulletRadius = 5.0;
+final bool showCurrentTimeBullet = false;
+
+final LiveTimeIndicatorSettings dayLiveTimeIndicatorSettings = LiveTimeIndicatorSettings(color: currentTimeLineColor, height: currentTimeLineHeight, showBullet: showCurrentTimeBullet, showTime: showCurrentTimeText, showTimeBackgroundView: showCurrentTimeBackground, timeTextColor: currentTimeTextColor, timeTextSize: currentTimeTextSize, timeBackgroundViewWidth: currentTimeBackgroundWidth, bulletRadius: currentTimeBulletRadius, lineStartInset: currentTimeLineStartInset, lineEndInset: currentTimeLineEndInset, currentTimeProvider: () => FormatSettingsController.applyTimezone(DateTime.now()));
+
+final LiveTimeIndicatorSettings weekLiveTimeIndicatorSettings = LiveTimeIndicatorSettings(color: currentTimeLineColor, height: currentTimeLineHeight, showBullet: true, showTime: showCurrentTimeText, showTimeBackgroundView: showCurrentTimeBackground, timeTextColor: currentTimeTextColor, timeTextSize: currentTimeTextSize, timeBackgroundViewWidth: currentTimeBackgroundWidth, bulletRadius: currentTimeBulletRadius, lineStartInset: currentTimeLineStartInset, lineEndInset: currentTimeLineEndInset,  currentTimeProvider: () => FormatSettingsController.applyTimezone(DateTime.now()));
+
+final LiveTimeIndicatorSettings multiDayLiveTimeIndicatorSettings = LiveTimeIndicatorSettings(color: currentTimeLineColor, height: currentTimeLineHeight, showBullet: true, showTime: showCurrentTimeText, showTimeBackgroundView: showCurrentTimeBackground, timeTextColor: currentTimeTextColor, timeTextSize: currentTimeTextSize, timeBackgroundViewWidth: currentTimeBackgroundWidth, bulletRadius: currentTimeBulletRadius, lineStartInset: currentTimeLineStartInset, lineEndInset: currentTimeLineEndInset, onlyShowToday: true, currentTimeProvider: () => FormatSettingsController.applyTimezone(DateTime.now()));
+
 final CalendarConfiguration calendarConfig = CalendarConfiguration(
   isDescriptionRequired: false,
   isDarkMode: defaultIsDarkMode,
@@ -109,74 +118,37 @@ final CalendarConfiguration calendarConfig = CalendarConfiguration(
   viewSelectorConfig: ViewSelectorConfig(
     items: [
       ViewSelectorItem(view: CalendarView.day, icon: Icons.view_day, label: 'Day View'),
-      ViewSelectorItem(view: CalendarView.week, icon: Icons.view_week, label: 'Week View'),
-      ViewSelectorItem(view: CalendarView.threeDays, icon: Icons.view_carousel, label: 'Multi-Day View'),
+      ViewSelectorItem(view: CalendarView.threeDays, icon: Icons.view_column_rounded, label: 'Multi-Day View'),
+      ViewSelectorItem(view: CalendarView.week, icon: Icons.calendar_view_week, label: 'Week View'),
+      
       ViewSelectorItem(view: CalendarView.month, icon: Icons.calendar_month, label: 'Month View'),
     ],
-    style: ViewSelectorStyle(iconSize: 30, spacing: 10, padding: EdgeInsets.symmetric(horizontal: 20, vertical: 6), buttonPadding: EdgeInsets.all(4), position: ViewSelectorPosition.right, activeColor: viewSelectorActiveColor, inactiveColor: viewSelectorInactiveColor),
+    style: ViewSelectorStyle(iconSize: 30, spacing: 10, padding: EdgeInsets.symmetric(horizontal: 20, vertical: 6), buttonPadding: EdgeInsets.all(4), position: ViewSelectorPosition.right, activeColor: viewSelectorActiveColor, inactiveColor: viewSelectorInactiveColor, showTodayButton: showTodayButton, todayButtonPosition: todayButtonPosition),
   ),
   showAddEventFab: false,
   showSettingsFab: false,
-  initialView: CalendarViewType.week,
+  initialView: CalendarViewType.multiDay,
   initialLocale: 'en',
   dateFormat: DateStampFormat.month_name_day_year_long,
   timeFormat: TimeStampFormat.parse_24,
-  timezone: TimezoneDatabase.allTimezones[14],
-  dayViewColors: DayViewColors(
-    hourLineColor: dayHourLineColor,
-    halfHourLineColor: dayHalfHourLineColor,
-    quarterHourLineColor: dayQuarterHourLineColor,
-    pageBackgroundColor: dayPageBackgroundColor,
-    liveIndicatorColor: dayLiveIndicatorColor,
-    headerIconColor: dayHeaderIconColor,
-    headerTextColor: dayHeaderTextColor,
-    headerBackgroundColor: dayHeaderBackgroundColor,
-    timelineTextColor: dayTimelineTextColor,
-  ),
+  timezone: TimezoneDatabase.allTimezones[12],
+  dayViewColors: DayViewColors(hourLineColor: dayHourLineColor, halfHourLineColor: dayHalfHourLineColor, quarterHourLineColor: dayQuarterHourLineColor, pageBackgroundColor: dayPageBackgroundColor, liveIndicatorColor: dayLiveIndicatorColor, headerIconColor: dayHeaderIconColor, headerTextColor: dayHeaderTextColor, headerBackgroundColor: dayHeaderBackgroundColor, timelineTextColor: dayTimelineTextColor),
+  dayLiveTimeIndicatorSettings: dayLiveTimeIndicatorSettings,
   stickyTimeSlot: true,
-  weekViewColors: WeekViewColors(
-    weekDayTileColor: weekDayTileColor,
-    weekDayTextColor: weekDayTextColor,
-    hourLineColor: weekHourLineColor,
-    halfHourLineColor: weekHalfHourLineColor,
-    quarterHourLineColor: weekQuarterHourLineColor,
-    liveIndicatorColor: weekLiveIndicatorColor,
-    pageBackgroundColor: weekPageBackgroundColor,
-    headerIconColor: weekHeaderIconColor,
-    headerTextColor: weekHeaderTextColor,
-    headerBackgroundColor: weekHeaderBackgroundColor,
-    timelineTextColor: weekTimelineTextColor,
-    borderColor: weekBorderColor,
-    verticalLinesColor: weekVerticalLinesColor,
-  ),
-  monthViewColors: MonthViewColors(
-    cellInMonthColor: monthCellInMonthColor,
-    cellNotInMonthColor: monthCellNotInMonthColor,
-    cellTextColor: monthCellTextColor,
-    cellBorderColor: monthCellBorderColor,
-    weekDayTileColor: monthWeekDayTileColor,
-    weekDayTextColor: monthWeekDayTextColor,
-    weekDayBorderColor: monthWeekDayBorderColor,
-    headerIconColor: monthHeaderIconColor,
-    headerTextColor: monthHeaderTextColor,
-    headerBackgroundColor: monthHeaderBackgroundColor,
-    cellHighlightColor: monthCellHighlightColor,
-  ),
-  multiDayViewColors: MultiDayViewColors(
-    multiDayTileColor: multiDayTileColor,
-    multiDayTextColor: multiDayTextColor,
-    hourLineColor: multiDayHourLineColor,
-    halfHourLineColor: multiDayHalfHourLineColor,
-    quarterHourLineColor: multiDayQuarterHourLineColor,
-    liveIndicatorColor: multiDayLiveIndicatorColor,
-    pageBackgroundColor: multiDayPageBackgroundColor,
-    headerIconColor: multiDayHeaderIconColor,
-    headerTextColor: multiDayHeaderTextColor,
-    headerBackgroundColor: multiDayHeaderBackgroundColor,
-    timelineTextColor: multiDayTimelineTextColor,
-    borderColor: multiDayBorderColor,
-    verticalLinesColor: multiDayVerticalLinesColor,
-  ),
+  weekViewColors: WeekViewColors(weekDayTileColor: weekDayTileColor, weekDayTextColor: weekDayTextColor, hourLineColor: weekHourLineColor, halfHourLineColor: weekHalfHourLineColor, quarterHourLineColor: weekQuarterHourLineColor, liveIndicatorColor: weekLiveIndicatorColor, pageBackgroundColor: weekPageBackgroundColor, headerIconColor: weekHeaderIconColor, headerTextColor: weekHeaderTextColor, headerBackgroundColor: weekHeaderBackgroundColor, timelineTextColor: weekTimelineTextColor, borderColor: weekBorderColor, verticalLinesColor: weekVerticalLinesColor),
+  weekLiveTimeIndicatorSettings: weekLiveTimeIndicatorSettings,
+  monthViewColors: MonthViewColors(cellInMonthColor: monthCellInMonthColor, cellNotInMonthColor: monthCellNotInMonthColor, cellTextColor: monthCellTextColor, cellBorderColor: monthCellBorderColor, weekDayTileColor: monthWeekDayTileColor, weekDayTextColor: monthWeekDayTextColor, weekDayBorderColor: monthWeekDayBorderColor, headerIconColor: monthHeaderIconColor, headerTextColor: monthHeaderTextColor, headerBackgroundColor: monthHeaderBackgroundColor, cellHighlightColor: monthCellHighlightColor),
+  multiDayViewColors: MultiDayViewColors(multiDayTileColor: multiDayTileColor, multiDayTextColor: multiDayTextColor, hourLineColor: multiDayHourLineColor, halfHourLineColor: multiDayHalfHourLineColor, quarterHourLineColor: multiDayQuarterHourLineColor, liveIndicatorColor: multiDayLiveIndicatorColor, pageBackgroundColor: multiDayPageBackgroundColor, headerIconColor: multiDayHeaderIconColor, headerTextColor: multiDayHeaderTextColor, headerBackgroundColor: multiDayHeaderBackgroundColor, timelineTextColor: multiDayTimelineTextColor, borderColor: multiDayBorderColor, verticalLinesColor: multiDayVerticalLinesColor),
+  multiDayLiveTimeIndicatorSettings: multiDayLiveTimeIndicatorSettings,
+  dayHeightPerMinute: dayHeightPerMinute,
+  weekHeightPerMinute: weekHeightPerMinute,
+  multiDayHeightPerMinute: multiDayHeightPerMinute,
+  multiDayDaysInView: multiDayDaysInView,
+  multiDayPageStep: multiDayPageStep,
+  dragSnapMinutes: dragSnapMinutes,
+  multiDayDragSnapMinutes: multiDayDragSnapMinutes,
+  dayDragSnapMinutes: dayDragSnapMinutes,
+  weekDragSnapMinutes: weekDragSnapMinutes,
 );
 
 void main() {
@@ -244,5 +216,142 @@ class _MyAppState extends State<MyApp> {
         },
       ),
     );
+  }
+}
+
+DateTime get _now => DateTime.now();
+
+class HomePage extends StatefulWidget {
+  const HomePage({this.onChangeTheme, super.key});
+
+  /// Return true for dark mode
+  /// false for light mode
+  final void Function(bool)? onChangeTheme;
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  EventController? _controller;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final controller = CalendarControllerProvider.of(context).controller;
+
+    // Initialize events only when controller is first accessed
+    if (_controller != controller) {
+      _controller = controller;
+
+      final translate = context.translate;
+      final events = [
+        CalendarEventData(
+          date: _now,
+          title: translate.projectMeetingTitle,
+          description: translate.projectMeetingDesc,
+          startTime: DateTime(_now.year, _now.month, _now.day, 18, 30),
+          endTime: DateTime(_now.year, _now.month, _now.day, 22),
+        ),
+        CalendarEventData(
+          date: _now.subtract(Duration(days: 3)),
+          recurrenceSettings: RecurrenceSettings.withCalculatedEndDate(
+            startDate: _now.subtract(Duration(days: 3)),
+          ),
+          title: translate.leetcodeContestTitle,
+          description: translate.leetcodeContestDesc,
+        ),
+        CalendarEventData(
+          date: _now.subtract(Duration(days: 3)),
+          recurrenceSettings: RecurrenceSettings.withCalculatedEndDate(
+            startDate: _now.subtract(Duration(days: 3)),
+            frequency: RepeatFrequency.daily,
+            recurrenceEndOn: RecurrenceEnd.after,
+            occurrences: 5,
+          ),
+          title: translate.physicsTestTitle,
+          description: translate.physicsTestDesc,
+        ),
+        CalendarEventData(
+          date: _now.add(Duration(days: 1)),
+          startTime: DateTime(_now.year, _now.month, _now.day, 18),
+          endTime: DateTime(_now.year, _now.month, _now.day, 19),
+          recurrenceSettings: RecurrenceSettings(
+            startDate: _now,
+            endDate: _now.add(Duration(days: 5)),
+            frequency: RepeatFrequency.daily,
+            recurrenceEndOn: RecurrenceEnd.after,
+            occurrences: 5,
+          ),
+          title: translate.weddingAnniversaryTitle,
+          description: translate.weddingAnniversaryDesc,
+        ),
+        CalendarEventData(
+          date: _now,
+          startTime: DateTime(_now.year, _now.month, _now.day, 14),
+          endTime: DateTime(_now.year, _now.month, _now.day, 17),
+          title: translate.footballTournamentTitle,
+          description: translate.footballTournamentDesc,
+        ),
+        CalendarEventData(
+          date: _now.add(Duration(days: 3)),
+          startTime: DateTime(
+            _now.add(Duration(days: 3)).year,
+            _now.add(Duration(days: 3)).month,
+            _now.add(Duration(days: 3)).day,
+            10,
+          ),
+          endTime: DateTime(
+            _now.add(Duration(days: 3)).year,
+            _now.add(Duration(days: 3)).month,
+            _now.add(Duration(days: 3)).day,
+            14,
+          ),
+          title: translate.sprintMeetingTitle,
+          description: translate.sprintMeetingDesc,
+        ),
+        CalendarEventData(
+          date: _now.subtract(Duration(days: 2)),
+          startTime: DateTime(
+            _now.subtract(Duration(days: 2)).year,
+            _now.subtract(Duration(days: 2)).month,
+            _now.subtract(Duration(days: 2)).day,
+            14,
+          ),
+          endTime: DateTime(
+            _now.subtract(Duration(days: 2)).year,
+            _now.subtract(Duration(days: 2)).month,
+            _now.subtract(Duration(days: 2)).day,
+            16,
+          ),
+          title: translate.teamMeetingTitle,
+          description: translate.teamMeetingDesc,
+        ),
+        CalendarEventData(
+          date: _now.subtract(Duration(days: 2)),
+          startTime: DateTime(
+            _now.subtract(Duration(days: 2)).year,
+            _now.subtract(Duration(days: 2)).month,
+            _now.subtract(Duration(days: 2)).day,
+            10,
+          ),
+          endTime: DateTime(
+            _now.subtract(Duration(days: 2)).year,
+            _now.subtract(Duration(days: 2)).month,
+            _now.subtract(Duration(days: 2)).day,
+            12,
+          ),
+          title: translate.chemistryVivaTitle,
+          description: translate.chemistryVivaDesc,
+        ),
+      ];
+      _controller!.addAll(events);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WebHomePage(onThemeChange: widget.onChangeTheme);
   }
 }

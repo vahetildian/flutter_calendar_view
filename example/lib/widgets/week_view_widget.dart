@@ -147,9 +147,12 @@ class WeekViewWidget extends StatelessWidget {
     return ValueListenableBuilder<FormatSettings>(
       valueListenable: FormatSettingsController.notifier,
       builder: (context, formats, _) {
+        final config = CalendarConfigurationProvider.of(context);
         return WeekView(
           key: state,
           stickyTimeSlot: CalendarConfigurationProvider.of(context).stickyTimeSlot,
+          dragSnapMinutes: config.weekDragSnapMinutes ?? config.dragSnapMinutes,
+          heightPerMinute: config.weekHeightPerMinute,
           width: width,
           timeLineBuilder: (date) => _timeLineBuilder(date, isLtr),
           headerStringBuilder: (date, {secondaryDate}) =>
@@ -215,13 +218,8 @@ class WeekViewWidget extends StatelessWidget {
             currentTimeProvider: () {
               return FormatSettingsController.applyTimezone(DateTime.now());
             },
-          ),
-          onTimestampTap: (date) {
-            SnackBar snackBar = SnackBar(
-              content: Text("On tap: ${date.hour} Hr : ${date.minute} Min"),
-            );
-            ScaffoldMessenger.of(context).showSnackBar(snackBar);
-          },
+          )
+              .merge(config.weekLiveTimeIndicatorSettings),
           onEventTap: showEventSummary,
           onEventLongTap: (events, date) => showLongTapNotice(),
         );
