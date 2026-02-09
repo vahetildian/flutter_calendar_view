@@ -206,6 +206,51 @@ DayView(
     dayTitleBuilder: DayHeader.hidden, // To Hide day header
     keepScrollOffset: true, // To maintain scroll offset when the page changes
 );
+
+## View Caching & YearView Options
+
+The package supports host-driven view caching and several configurable options on `YearView` to make it easy to reuse the calendar views from other apps or keep them alive across navigation.
+
+- `keepAlive` (bool) — When true the `YearView` state uses `AutomaticKeepAliveClientMixin` and will be kept alive when the host keeps the widget in the tree (for example inside an `IndexedStack`). Default: `true`.
+- `yearLabelAlignment` (TextAlign) — Controls where the year label above the month tiles is placed: `TextAlign.left`, `TextAlign.center`, or `TextAlign.right`. Default: `TextAlign.center`.
+- `yearLabelPadding` (EdgeInsets) — Controls padding around the year label.
+- `yearLabelTextStyle` (TextStyle?) — Optional override for the year label `TextStyle`.
+- `onYearChanged` (ValueChanged<int>?) — Callback invoked when the visible year changes due to scrolling.
+
+Recommended host patterns
+
+- IndexedStack (recommended for cached views): keep a single `IndexedStack` with each calendar view as a child. When the host changes the `index`, childrens' State are preserved and views do not reload.
+
+Example (host-driven caching using `IndexedStack`):
+
+```dart
+// In your hosting app (example shows the pattern used by the example app)
+int _selectedIndex = 3; // e.g. month
+
+IndexedStack(
+  index: _selectedIndex,
+  children: [
+    DayView(...),
+    MultiDayView(...),
+    WeekView(...),
+    MonthView(...),
+    YearView(keepAlive: true, yearLabelAlignment: TextAlign.center, yearLabelPadding: EdgeInsets.symmetric(vertical:8)),
+  ],
+)
+```
+
+- Navigator / push (simple): if you push new routes, previous routes remain in the navigator stack and their State remains alive until the route is popped. This is suitable for simple apps that navigate between full-screen pages.
+
+API design recommendations for package authors
+
+- Prefer allowing the host to provide `Key`/`GlobalKey` arguments so the host can control preservation of State when they want to cache views.
+- Provide a `keepAlive` flag (default true) and implement `AutomaticKeepAliveClientMixin` conditionally so hosts can opt-in or out.
+- Document and expose convenience `jumpToYear(DateTime)` / `jumpToMonth(DateTime)` in the public `YearViewState` so hosts can programmatically navigate to a specific year/month.
+
+Notes for integrators
+
+- If you ship the calendar as a package and expect hosts to cache views, document the recommended patterns (IndexedStack or host-managed GlobalKeys) and avoid internal static keys. The example app demonstrates both the `IndexedStack` caching pattern and the optional programmatic APIs.
+
 ```
 
 ## Week View Customization

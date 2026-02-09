@@ -1,5 +1,6 @@
 import 'package:calendar_view/calendar_view.dart';
 import 'package:example/extension.dart';
+import 'package:example/main.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -9,8 +10,16 @@ import 'add_event_form.dart';
 class MonthViewWidget extends StatelessWidget {
   final GlobalKey<MonthViewState>? state;
   final double? width;
+  final ValueChanged<DateTime>? onDayTap;
+  final Widget? viewSelector;
 
-  const MonthViewWidget({super.key, this.state, this.width});
+  const MonthViewWidget({
+    super.key,
+    this.state,
+    this.width,
+    this.onDayTap,
+    this.viewSelector,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +27,39 @@ class MonthViewWidget extends StatelessWidget {
     return MonthView(
       key: state,
       width: width,
+      monthViewStyle: MonthViewStyle(
+        headerStyle: HeaderStyle(
+          decoration: BoxDecoration(
+            color: monthHeaderBackgroundColor,
+          ),
+        ),
+        startDay: monthStartDay,
+        useAvailableVerticalSpace: true,
+        hideDaysNotInMonth: true,
+        // Define the range of months to display
+        maxMonth: DateTime(2027, 12, 31),
+        minMonth: DateTime(2020, 1, 1),
+        pagePhysics: NeverScrollableScrollPhysics(),
+      ),
       monthViewBuilders: MonthViewBuilders(
+        headerBuilder: viewSelector != null ? (date) {
+          final state = this.state?.currentState;
+          return CalendarPageHeader(
+            date: date,
+            dateStringBuilder: (date, {secondaryDate}) =>
+                DateFormat('MMMM yyyy').format(date),
+            headerStyle: HeaderStyle(
+              decoration: BoxDecoration(
+                color: monthHeaderBackgroundColor,
+              ),
+            ),
+            viewSelector: viewSelector,
+            onPreviousDay: state?.previousPage,
+            onNextDay: state?.nextPage,
+            showPreviousIcon: date != state?.minDate,
+            showNextIcon: date != state?.maxDate,
+          );
+        } : null,
         headerStringBuilder: (date, {secondaryDate}) =>
           DateFormat('MMMM yyyy').format(date),
         //When user tries to scroll beyond the max month or min month
@@ -35,25 +76,30 @@ class MonthViewWidget extends StatelessWidget {
           );
           ScaffoldMessenger.of(context).showSnackBar(snackBar);
         },
-        onDateLongPress: (date) {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: Text('Add Event'),
-              content: SingleChildScrollView(
-                child: AddOrEditEventForm(
-                  initialDateTime: date,
-                  onEventAdd: (event) {
-                    Navigator.of(ctx).pop();
-                    CalendarControllerProvider.of(context)
-                        .controller
-                        .add(event);
-                  },
-                ),
-              ),
-            ),
-          );
+        onCellTap: (events, date) {
+          if (onDayTap != null) {
+            onDayTap!(date);
+          }
         },
+        // onDateLongPress: (date) {
+        //   showDialog(
+        //     context: context,
+        //     builder: (ctx) => AlertDialog(
+        //       title: Text('Add Event'),
+        //       content: SingleChildScrollView(
+        //         child: AddOrEditEventForm(
+        //           initialDateTime: date,
+        //           onEventAdd: (event) {
+        //             Navigator.of(ctx).pop();
+        //             CalendarControllerProvider.of(context)
+        //                 .controller
+        //                 .add(event);
+        //           },
+        //         ),
+        //       ),
+        //     ),
+        //   );
+        // },
         onEventTap: (event, date) {
           String formatTime(DateTime? dt) {
             if (dt == null) return '';
@@ -130,15 +176,6 @@ class MonthViewWidget extends StatelessWidget {
       ),
       monthViewThemeSettings: MonthViewThemeSettings(
         cellsInMonthHighlightColor: Colors.blue,
-      ),
-      monthViewStyle: MonthViewStyle(
-        startDay: WeekDays.friday,
-        useAvailableVerticalSpace: true,
-        hideDaysNotInMonth: true,
-        // Define the range of months to display
-        maxMonth: DateTime(2027, 12, 31),
-        minMonth: DateTime(2020, 1, 1),
-        pagePhysics: NeverScrollableScrollPhysics(),
       ),
     );
   }

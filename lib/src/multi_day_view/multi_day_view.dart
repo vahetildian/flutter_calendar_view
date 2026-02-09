@@ -330,6 +330,11 @@ class MultiDayView<T extends Object?> extends StatefulWidget {
 }
 
 class MultiDayViewState<T extends Object?> extends State<MultiDayView<T>> {
+    /// Public getter for minimum date
+    DateTime get minDate => _minDate;
+
+    /// Public getter for maximum date
+    DateTime get maxDate => _maxDate;
   late double _width;
   late double _height;
   late double _timeLineWidth;

@@ -7,13 +7,15 @@ import 'package:flutter/material.dart';
 import '../config/calendar_form_config.dart';
 import '../extension.dart';
 import '../format_settings.dart';
+import '../main.dart';
 import 'add_event_form.dart';
 
 class MultiDayViewWidget extends StatelessWidget {
   final GlobalKey<MultiDayViewState>? state;
   final double? width;
+  final Widget? viewSelector;
 
-  const MultiDayViewWidget({super.key, this.state, this.width});
+  const MultiDayViewWidget({super.key, this.state, this.width, this.viewSelector});
 
   String _formatHeader(DateTime start, DateTime? end, FormatSettings formats) {
     if (end == null) {
@@ -158,9 +160,33 @@ class MultiDayViewWidget extends StatelessWidget {
               config.multiDayDragSnapMinutes ?? config.dragSnapMinutes,
           heightPerMinute: config.multiDayHeightPerMinute,
           width: width,
+          headerStyle: HeaderStyle(
+            decoration: BoxDecoration(
+              color: multiDayHeaderBackgroundColor,
+            ),
+          ),
           timeLineBuilder: (date) => _timeLineBuilder(date, isLtr),
           headerStringBuilder: (date, {secondaryDate}) =>
               _formatHeader(date, secondaryDate, formats),
+          weekPageHeaderBuilder: viewSelector != null ? (startDate, endDate) {
+            final state = this.state?.currentState;
+            return CalendarPageHeader(
+              date: startDate,
+              secondaryDate: endDate,
+              dateStringBuilder: (date, {secondaryDate}) =>
+                  _formatHeader(date, secondaryDate, formats),
+              headerStyle: HeaderStyle(
+                decoration: BoxDecoration(
+                  color: multiDayHeaderBackgroundColor,
+                ),
+              ),
+              viewSelector: viewSelector,
+              onPreviousDay: state?.previousPage,
+              onNextDay: state?.nextPage,
+              showPreviousIcon: startDate != state?.minDate,
+              showNextIcon: endDate != state?.maxDate,
+            );
+          } : null,
           showLiveTimeLineInAllDays: true,
           onDateLongPress: (date) {
             showDialog(

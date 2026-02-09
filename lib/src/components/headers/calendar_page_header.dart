@@ -161,7 +161,6 @@ class CalendarPageHeader extends StatelessWidget {
                     ),
                   ),
           ),
-          if (viewSelector != null) viewSelector!,
           if (headerStyle.rightIconVisible &&
               headerStyle.rightIconConfig != null)
             AbsorbPointer(
@@ -187,6 +186,8 @@ class CalendarPageHeader extends StatelessWidget {
                     ),
               ),
             ),
+          if (viewSelector != null) viewSelector!,
+          
         ],
       ),
     );

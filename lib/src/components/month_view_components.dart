@@ -167,21 +167,32 @@ class FilledCell<T extends Object?> extends StatelessWidget {
                 margin: EdgeInsets.only(top: 5.0),
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(),
-                child: SingleChildScrollView(
-                  physics: BouncingScrollPhysics(),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(
-                      events.length,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final tileCount = events.length;
+                    // Estimate a minimum tile height (including margin/padding)
+                    const minTileHeight = 24.0;
+                    final requiredHeight = tileCount * minTileHeight + (tileCount - 1) * 2.0;
+                    final useVertical = tileCount == 1 || constraints.maxHeight >= requiredHeight;
+                    final tileWidth = useVertical
+                        ? double.infinity
+                        : (constraints.maxWidth - 6.0 * tileCount) / tileCount;
+                    final tileHeight = useVertical
+                        ? null
+                        : (constraints.maxHeight - 4.0);
+                    final children = List.generate(
+                      tileCount,
                       (index) {
                         final event = events[index];
                         final tile = Container(
+                          width: useVertical ? null : tileWidth,
+                          height: useVertical ? null : tileHeight,
                           decoration: BoxDecoration(
                             color: event.color,
                             borderRadius: BorderRadius.circular(4.0),
                           ),
                           margin: EdgeInsets.symmetric(
-                              vertical: 2.0, horizontal: 3.0),
+                              vertical: useVertical ? 2.0 : 1.0, horizontal: useVertical ? 3.0 : 1.0),
                           padding: const EdgeInsets.all(2.0),
                           alignment: Alignment.centerLeft,
                           child: Text(
@@ -195,7 +206,6 @@ class FilledCell<T extends Object?> extends StatelessWidget {
                                 ),
                           ),
                         );
-
                         return Draggable<Map<String, dynamic>>(
                           data: {
                             'event': event,
@@ -247,8 +257,19 @@ class FilledCell<T extends Object?> extends StatelessWidget {
                           ),
                         );
                       },
-                    ),
-                  ),
+                    );
+                    if (useVertical) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: children,
+                      );
+                    } else {
+                      return Row(
+                        mainAxisSize: MainAxisSize.max,
+                        children: children,
+                      );
+                    }
+                  },
                 ),
               ),
             ),

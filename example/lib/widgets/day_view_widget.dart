@@ -6,13 +6,15 @@ import 'package:flutter/material.dart';
 import '../config/calendar_form_config.dart';
 import '../extension.dart';
 import '../format_settings.dart';
+import '../main.dart';
 import 'add_event_form.dart';
 
 class DayViewWidget extends StatelessWidget {
   final GlobalKey<DayViewState>? state;
   final double? width;
+  final Widget? viewSelector;
 
-  const DayViewWidget({super.key, this.state, this.width});
+  const DayViewWidget({super.key, this.state, this.width, this.viewSelector});
 
   @override
   Widget build(BuildContext context) {
@@ -102,12 +104,34 @@ class DayViewWidget extends StatelessWidget {
           stickyTimeSlot: CalendarConfigurationProvider.of(context).stickyTimeSlot,
           dragSnapMinutes: config.dayDragSnapMinutes ?? config.dragSnapMinutes,
           width: width,
+          headerStyle: HeaderStyle(
+            decoration: BoxDecoration(
+              color: dayHeaderBackgroundColor,
+            ),
+          ),
           dateStringBuilder: (date, {secondaryDate}) =>
               date.dateToStringWithDateStampFormat(format: formats.dateFormat),
           startDuration: Duration(hours: 8),
           showHalfHours: true,
           heightPerMinute: config.dayHeightPerMinute,
           timeLineBuilder: (date) => _timeLineBuilder(date, isLtr),
+          dayTitleBuilder: viewSelector != null
+              ? (date) => CalendarPageHeader(
+                    date: date,
+                    dateStringBuilder: (date, {secondaryDate}) =>
+                        date.dateToStringWithDateStampFormat(format: formats.dateFormat),
+                    headerStyle: HeaderStyle(
+                      decoration: BoxDecoration(
+                        color: dayHeaderBackgroundColor,
+                      ),
+                    ),
+                    viewSelector: viewSelector,
+                    onPreviousDay: state?.currentState?.previousPage,
+                    onNextDay: state?.currentState?.nextPage,
+                    showPreviousIcon: state?.currentState?.currentDate != state?.currentState?.minDate,
+                    showNextIcon: state?.currentState?.currentDate != state?.currentState?.maxDate,
+                  )
+              : null,
           onDateLongPress: (date) {
             showDialog(
               context: context,

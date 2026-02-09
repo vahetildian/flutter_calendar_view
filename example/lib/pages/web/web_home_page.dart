@@ -36,6 +36,8 @@ class _WebHomePageState extends State<WebHomePage> {
         return CalendarView.threeDays;
       case CalendarViewType.month:
         return CalendarView.month;
+      case CalendarViewType.year:
+        return CalendarView.year;
     }
   }
 
@@ -54,7 +56,7 @@ class _WebHomePageState extends State<WebHomePage> {
   Widget build(BuildContext context) {
     final config = CalendarConfigurationProvider.of(context);
     return Scaffold(
-      body: CalendarViews(view: _selectedView),
+      body: CalendarViews(view: _selectedView, cacheViews: true, onViewSelected: (v) => setState(() => _selectedView = v)),
       floatingActionButton:
           (config.showAddEventFab || config.showSettingsFab)
               ? Column(

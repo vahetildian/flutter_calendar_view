@@ -16,13 +16,18 @@ import 'pages/web/web_home_page.dart';
 import 'theme/app_colors.dart';
 import 'theme/dark_app_colors.dart';
 
-const bool defaultIsDarkMode = true;
+const bool defaultIsDarkMode = false;
 
 // View selector & Today button
 final Color viewSelectorActiveColor = defaultIsDarkMode ? AppColors.white : AppColors.white;
 final Color viewSelectorInactiveColor = defaultIsDarkMode ? DarkAppColors.outlineVariant : AppColors.outlineVariant;
 final bool showTodayButton = true;
 final TodayButtonPosition todayButtonPosition = TodayButtonPosition.left;
+final double minWidthForViewSelectorButtons = 500.0; // Minimum screen width to show icon buttons vs menu
+
+//Header background Color. Is set to every view for now. But you can change the header background color for each view in the following code.
+final Color headerBackgroundColorLight = const Color(0xFF2196F3);
+final Color headerBackgroundColorDark = const Color(0xFF1976D2);
 
 // Day view colors
 final Color dayHourLineColor = defaultIsDarkMode ? DarkAppColors.outlineVariant : AppColors.outlineVariant;
@@ -32,7 +37,7 @@ final Color dayPageBackgroundColor = defaultIsDarkMode ? Colors.black : AppColor
 final Color dayLiveIndicatorColor = defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
 final Color dayHeaderIconColor = defaultIsDarkMode ? DarkAppColors.onPrimary : AppColors.onPrimary;
 final Color dayHeaderTextColor = dayHeaderIconColor;
-final Color dayHeaderBackgroundColor = defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
+final Color dayHeaderBackgroundColor = defaultIsDarkMode ? headerBackgroundColorDark : headerBackgroundColorLight;
 final Color dayTimelineTextColor = defaultIsDarkMode ? Colors.white : AppColors.black;
 
 // Week view colors
@@ -45,7 +50,7 @@ final Color weekLiveIndicatorColor = defaultIsDarkMode ? DarkAppColors.primary :
 final Color weekPageBackgroundColor = defaultIsDarkMode ? Colors.black : AppColors.white;
 final Color weekHeaderIconColor = defaultIsDarkMode ? DarkAppColors.onPrimary : AppColors.onPrimary;
 final Color weekHeaderTextColor = weekHeaderIconColor;
-final Color weekHeaderBackgroundColor = defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
+final Color weekHeaderBackgroundColor = defaultIsDarkMode ? headerBackgroundColorDark : headerBackgroundColorLight;
 final Color weekTimelineTextColor = weekDayTextColor;
 final Color weekBorderColor = weekHourLineColor;
 final Color weekVerticalLinesColor = weekHourLineColor;
@@ -58,10 +63,11 @@ final Color monthCellBorderColor = defaultIsDarkMode ? DarkAppColors.outlineVari
 final Color monthWeekDayTileColor = weekDayTileColor;
 final Color monthWeekDayTextColor = weekDayTextColor;
 final Color monthWeekDayBorderColor = monthCellBorderColor;
-final Color monthHeaderIconColor = weekHeaderIconColor;
-final Color monthHeaderTextColor = weekHeaderTextColor;
-final Color monthHeaderBackgroundColor = weekHeaderBackgroundColor;
+final Color monthHeaderIconColor = defaultIsDarkMode ? DarkAppColors.onPrimary : AppColors.onPrimary;
+final Color monthHeaderTextColor = monthHeaderIconColor;
+final Color monthHeaderBackgroundColor = defaultIsDarkMode ? headerBackgroundColorDark : headerBackgroundColorLight;
 final Color monthCellHighlightColor = defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
+final WeekDays monthStartDay = WeekDays.monday; // Start week on Monday in month view
 
 // Multi-day view colors
 final Color multiDayTileColor = weekDayTileColor;
@@ -71,17 +77,36 @@ final Color multiDayHalfHourLineColor = weekHalfHourLineColor;
 final Color multiDayQuarterHourLineColor = weekQuarterHourLineColor;
 final Color multiDayLiveIndicatorColor = weekLiveIndicatorColor;
 final Color multiDayPageBackgroundColor = weekPageBackgroundColor;
-final Color multiDayHeaderIconColor = weekHeaderIconColor;
-final Color multiDayHeaderTextColor = weekHeaderTextColor;
-final Color multiDayHeaderBackgroundColor = weekHeaderBackgroundColor;
+final Color multiDayHeaderIconColor = defaultIsDarkMode ? DarkAppColors.onPrimary : AppColors.onPrimary;
+final Color multiDayHeaderTextColor = multiDayHeaderIconColor;
+final Color multiDayHeaderBackgroundColor = defaultIsDarkMode ? headerBackgroundColorDark : headerBackgroundColorLight;
 final Color multiDayTimelineTextColor = weekTimelineTextColor;
 final Color multiDayBorderColor = weekBorderColor;
 final Color multiDayVerticalLinesColor = weekVerticalLinesColor;
 
+// Year view colors
+final Color yearCurrentMonthBorderColor = defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
+final Color yearOtherMonthsBorderColor = defaultIsDarkMode ? DarkAppColors.outlineVariant : AppColors.outlineVariant;
+final Color yearTodayCircleColor = defaultIsDarkMode ? DarkAppColors.primary : AppColors.primary;
+final bool yearShowMonthBorders = true;
+final bool yearShowCurrentMonthBorder = true;
+final bool yearShowTodayCircle = true;
+final WeekDays yearStartDay = WeekDays.monday;
+final TextAlign yearLabelAlignment = TextAlign.left; // left, center, or right
+final EdgeInsets yearLabelPadding = const EdgeInsets.symmetric(horizontal: 100.0);
+final TextStyle? yearLabelTextStyle = null;
+final double yearScrollOffset = 0.0; // tune if year top is off (pixels)
+// Background color for YearView (hosts can change this)
+final Color yearBackgroundColor = defaultIsDarkMode ? Colors.black : Colors.white;
+
+/// Threshold (in pixels) for switching YearView to display only month names (no grid).
+/// If the month tile width is less than this value, only the month name is shown.
+final double yearViewMonthNamesOnlyWidthThreshold = 375.0;
+
 // View layout & interaction
-final int multiDayDaysInView = 5;
-final int multiDayPageStep = 7;
-final int dragSnapMinutes = 10;
+final int multiDayDaysInView = 3;
+final int multiDayPageStep = 1;
+final int dragSnapMinutes = 30;
 final int? multiDayDragSnapMinutes = null;
 final int? dayDragSnapMinutes = null;
 final int? weekDragSnapMinutes = null;
@@ -89,7 +114,7 @@ final double dayHeightPerMinute = 1;
 final double weekHeightPerMinute = 1;
 final double multiDayHeightPerMinute = 1;
 
-// Current time indicator controls
+// Current time indicator controlsDon
 final bool showCurrentTimeText = true;
 final bool showCurrentTimeBackground = true;
 final Color currentTimeLineColor = defaultIsDarkMode ? AppColors.primary : AppColors.primary;
@@ -97,7 +122,7 @@ final double currentTimeLineHeight = 1.0;
 final double currentTimeLineStartInset = 0.0;
 final double currentTimeLineEndInset = 0.0;
 
-final Color currentTimeTextColor = defaultIsDarkMode ? AppColors.white : AppColors.black;
+final Color currentTimeTextColor = defaultIsDarkMode ? AppColors.white : AppColors.white;
 final double currentTimeTextSize = 12.0;
 final double currentTimeBackgroundWidth = 60.0;
 final double currentTimeBulletRadius = 5.0;
@@ -105,7 +130,7 @@ final bool showCurrentTimeBullet = false;
 
 final LiveTimeIndicatorSettings dayLiveTimeIndicatorSettings = LiveTimeIndicatorSettings(color: currentTimeLineColor, height: currentTimeLineHeight, showBullet: showCurrentTimeBullet, showTime: showCurrentTimeText, showTimeBackgroundView: showCurrentTimeBackground, timeTextColor: currentTimeTextColor, timeTextSize: currentTimeTextSize, timeBackgroundViewWidth: currentTimeBackgroundWidth, bulletRadius: currentTimeBulletRadius, lineStartInset: currentTimeLineStartInset, lineEndInset: currentTimeLineEndInset, currentTimeProvider: () => FormatSettingsController.applyTimezone(DateTime.now()));
 
-final LiveTimeIndicatorSettings weekLiveTimeIndicatorSettings = LiveTimeIndicatorSettings(color: currentTimeLineColor, height: currentTimeLineHeight, showBullet: true, showTime: showCurrentTimeText, showTimeBackgroundView: showCurrentTimeBackground, timeTextColor: currentTimeTextColor, timeTextSize: currentTimeTextSize, timeBackgroundViewWidth: currentTimeBackgroundWidth, bulletRadius: currentTimeBulletRadius, lineStartInset: currentTimeLineStartInset, lineEndInset: currentTimeLineEndInset,  currentTimeProvider: () => FormatSettingsController.applyTimezone(DateTime.now()));
+final LiveTimeIndicatorSettings weekLiveTimeIndicatorSettings = LiveTimeIndicatorSettings(color: currentTimeLineColor, height: currentTimeLineHeight, showBullet: true, showTime: showCurrentTimeText, showTimeBackgroundView: showCurrentTimeBackground, timeTextColor: currentTimeTextColor, timeTextSize: currentTimeTextSize, timeBackgroundViewWidth: currentTimeBackgroundWidth, bulletRadius: currentTimeBulletRadius, lineStartInset: currentTimeLineStartInset, lineEndInset: currentTimeLineEndInset, currentTimeProvider: () => FormatSettingsController.applyTimezone(DateTime.now()));
 
 final LiveTimeIndicatorSettings multiDayLiveTimeIndicatorSettings = LiveTimeIndicatorSettings(color: currentTimeLineColor, height: currentTimeLineHeight, showBullet: true, showTime: showCurrentTimeText, showTimeBackgroundView: showCurrentTimeBackground, timeTextColor: currentTimeTextColor, timeTextSize: currentTimeTextSize, timeBackgroundViewWidth: currentTimeBackgroundWidth, bulletRadius: currentTimeBulletRadius, lineStartInset: currentTimeLineStartInset, lineEndInset: currentTimeLineEndInset, onlyShowToday: true, currentTimeProvider: () => FormatSettingsController.applyTimezone(DateTime.now()));
 
@@ -120,14 +145,14 @@ final CalendarConfiguration calendarConfig = CalendarConfiguration(
       ViewSelectorItem(view: CalendarView.day, icon: Icons.view_day, label: 'Day View'),
       ViewSelectorItem(view: CalendarView.threeDays, icon: Icons.view_column_rounded, label: 'Multi-Day View'),
       ViewSelectorItem(view: CalendarView.week, icon: Icons.calendar_view_week, label: 'Week View'),
-      
       ViewSelectorItem(view: CalendarView.month, icon: Icons.calendar_month, label: 'Month View'),
+      ViewSelectorItem(view: CalendarView.year, icon: Icons.calendar_view_month, label: 'Year View'),
     ],
     style: ViewSelectorStyle(iconSize: 30, spacing: 10, padding: EdgeInsets.symmetric(horizontal: 20, vertical: 6), buttonPadding: EdgeInsets.all(4), position: ViewSelectorPosition.right, activeColor: viewSelectorActiveColor, inactiveColor: viewSelectorInactiveColor, showTodayButton: showTodayButton, todayButtonPosition: todayButtonPosition),
   ),
   showAddEventFab: false,
   showSettingsFab: false,
-  initialView: CalendarViewType.multiDay,
+  initialView: CalendarViewType.year,
   initialLocale: 'en',
   dateFormat: DateStampFormat.month_name_day_year_long,
   timeFormat: TimeStampFormat.parse_24,
@@ -247,29 +272,16 @@ class _HomePageState extends State<HomePage> {
 
       final translate = context.translate;
       final events = [
-        CalendarEventData(
-          date: _now,
-          title: translate.projectMeetingTitle,
-          description: translate.projectMeetingDesc,
-          startTime: DateTime(_now.year, _now.month, _now.day, 18, 30),
-          endTime: DateTime(_now.year, _now.month, _now.day, 22),
-        ),
+        CalendarEventData(date: _now, title: translate.projectMeetingTitle, description: translate.projectMeetingDesc, startTime: DateTime(_now.year, _now.month, _now.day, 18, 30), endTime: DateTime(_now.year, _now.month, _now.day, 22)),
         CalendarEventData(
           date: _now.subtract(Duration(days: 3)),
-          recurrenceSettings: RecurrenceSettings.withCalculatedEndDate(
-            startDate: _now.subtract(Duration(days: 3)),
-          ),
+          recurrenceSettings: RecurrenceSettings.withCalculatedEndDate(startDate: _now.subtract(Duration(days: 3))),
           title: translate.leetcodeContestTitle,
           description: translate.leetcodeContestDesc,
         ),
         CalendarEventData(
           date: _now.subtract(Duration(days: 3)),
-          recurrenceSettings: RecurrenceSettings.withCalculatedEndDate(
-            startDate: _now.subtract(Duration(days: 3)),
-            frequency: RepeatFrequency.daily,
-            recurrenceEndOn: RecurrenceEnd.after,
-            occurrences: 5,
-          ),
+          recurrenceSettings: RecurrenceSettings.withCalculatedEndDate(startDate: _now.subtract(Duration(days: 3)), frequency: RepeatFrequency.daily, recurrenceEndOn: RecurrenceEnd.after, occurrences: 5),
           title: translate.physicsTestTitle,
           description: translate.physicsTestDesc,
         ),
@@ -277,74 +289,14 @@ class _HomePageState extends State<HomePage> {
           date: _now.add(Duration(days: 1)),
           startTime: DateTime(_now.year, _now.month, _now.day, 18),
           endTime: DateTime(_now.year, _now.month, _now.day, 19),
-          recurrenceSettings: RecurrenceSettings(
-            startDate: _now,
-            endDate: _now.add(Duration(days: 5)),
-            frequency: RepeatFrequency.daily,
-            recurrenceEndOn: RecurrenceEnd.after,
-            occurrences: 5,
-          ),
+          recurrenceSettings: RecurrenceSettings(startDate: _now, endDate: _now.add(Duration(days: 5)), frequency: RepeatFrequency.daily, recurrenceEndOn: RecurrenceEnd.after, occurrences: 5),
           title: translate.weddingAnniversaryTitle,
           description: translate.weddingAnniversaryDesc,
         ),
-        CalendarEventData(
-          date: _now,
-          startTime: DateTime(_now.year, _now.month, _now.day, 14),
-          endTime: DateTime(_now.year, _now.month, _now.day, 17),
-          title: translate.footballTournamentTitle,
-          description: translate.footballTournamentDesc,
-        ),
-        CalendarEventData(
-          date: _now.add(Duration(days: 3)),
-          startTime: DateTime(
-            _now.add(Duration(days: 3)).year,
-            _now.add(Duration(days: 3)).month,
-            _now.add(Duration(days: 3)).day,
-            10,
-          ),
-          endTime: DateTime(
-            _now.add(Duration(days: 3)).year,
-            _now.add(Duration(days: 3)).month,
-            _now.add(Duration(days: 3)).day,
-            14,
-          ),
-          title: translate.sprintMeetingTitle,
-          description: translate.sprintMeetingDesc,
-        ),
-        CalendarEventData(
-          date: _now.subtract(Duration(days: 2)),
-          startTime: DateTime(
-            _now.subtract(Duration(days: 2)).year,
-            _now.subtract(Duration(days: 2)).month,
-            _now.subtract(Duration(days: 2)).day,
-            14,
-          ),
-          endTime: DateTime(
-            _now.subtract(Duration(days: 2)).year,
-            _now.subtract(Duration(days: 2)).month,
-            _now.subtract(Duration(days: 2)).day,
-            16,
-          ),
-          title: translate.teamMeetingTitle,
-          description: translate.teamMeetingDesc,
-        ),
-        CalendarEventData(
-          date: _now.subtract(Duration(days: 2)),
-          startTime: DateTime(
-            _now.subtract(Duration(days: 2)).year,
-            _now.subtract(Duration(days: 2)).month,
-            _now.subtract(Duration(days: 2)).day,
-            10,
-          ),
-          endTime: DateTime(
-            _now.subtract(Duration(days: 2)).year,
-            _now.subtract(Duration(days: 2)).month,
-            _now.subtract(Duration(days: 2)).day,
-            12,
-          ),
-          title: translate.chemistryVivaTitle,
-          description: translate.chemistryVivaDesc,
-        ),
+        CalendarEventData(date: _now, startTime: DateTime(_now.year, _now.month, _now.day, 14), endTime: DateTime(_now.year, _now.month, _now.day, 17), title: translate.footballTournamentTitle, description: translate.footballTournamentDesc),
+        CalendarEventData(date: _now.add(Duration(days: 3)), startTime: DateTime(_now.add(Duration(days: 3)).year, _now.add(Duration(days: 3)).month, _now.add(Duration(days: 3)).day, 10), endTime: DateTime(_now.add(Duration(days: 3)).year, _now.add(Duration(days: 3)).month, _now.add(Duration(days: 3)).day, 14), title: translate.sprintMeetingTitle, description: translate.sprintMeetingDesc),
+        CalendarEventData(date: _now.subtract(Duration(days: 2)), startTime: DateTime(_now.subtract(Duration(days: 2)).year, _now.subtract(Duration(days: 2)).month, _now.subtract(Duration(days: 2)).day, 14), endTime: DateTime(_now.subtract(Duration(days: 2)).year, _now.subtract(Duration(days: 2)).month, _now.subtract(Duration(days: 2)).day, 16), title: translate.teamMeetingTitle, description: translate.teamMeetingDesc),
+        CalendarEventData(date: _now.subtract(Duration(days: 2)), startTime: DateTime(_now.subtract(Duration(days: 2)).year, _now.subtract(Duration(days: 2)).month, _now.subtract(Duration(days: 2)).day, 10), endTime: DateTime(_now.subtract(Duration(days: 2)).year, _now.subtract(Duration(days: 2)).month, _now.subtract(Duration(days: 2)).day, 12), title: translate.chemistryVivaTitle, description: translate.chemistryVivaDesc),
       ];
       _controller!.addAll(events);
     }

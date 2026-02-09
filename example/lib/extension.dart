@@ -44,45 +44,59 @@ extension NavigatorExtention on BuildContext {
 
 extension DateUtils on DateTime {
   String get weekdayToFullString {
+    var s = '';
     switch (weekday) {
       case DateTime.monday:
-        return "Monday";
+        s = 'Monday';
+        break;
       case DateTime.tuesday:
-        return "Tuesday";
+        s = 'Tuesday';
+        break;
       case DateTime.wednesday:
-        return "Wednesday";
+        s = 'Wednesday';
+        break;
       case DateTime.thursday:
-        return "Thursday";
+        s = 'Thursday';
+        break;
       case DateTime.friday:
-        return "Friday";
+        s = 'Friday';
+        break;
       case DateTime.saturday:
-        return "Saturday";
+        s = 'Saturday';
+        break;
       case DateTime.sunday:
-        return "Sunday";
-      default:
-        return "Error";
+        s = 'Sunday';
+        break;
     }
+    return s;
   }
 
   String get weekdayToAbbreviatedString {
+    var s = '';
     switch (weekday) {
       case DateTime.monday:
-        return "M";
+        s = 'M';
+        break;
       case DateTime.tuesday:
-        return "T";
+        s = 'T';
+        break;
       case DateTime.wednesday:
-        return "W";
+        s = 'W';
+        break;
       case DateTime.thursday:
-        return "T";
+        s = 'T';
+        break;
       case DateTime.friday:
-        return "F";
+        s = 'F';
+        break;
       case DateTime.saturday:
-        return "S";
+        s = 'S';
+        break;
       case DateTime.sunday:
-        return "S";
-      default:
-        return "Err";
+        s = 'S';
+        break;
     }
+    return s;
   }
 
   int get totalMinutes => hour * 60 + minute;
@@ -116,40 +130,55 @@ extension DateUtils on DateTime {
   String dateToStringWithDateStampFormat({
     DateStampFormat format = DateStampFormat.month_name_day_year_long,
   }) {
+    var s = '';
     switch (format) {
       case DateStampFormat.yyyy_mm_dd:
-        return DateFormat('yyyy-MM-dd').format(this);
+        s = DateFormat('yyyy-MM-dd').format(this);
+        break;
       case DateStampFormat.yy_mm_dd:
-        return DateFormat('yy-MM-dd').format(this);
+        s = DateFormat('yy-MM-dd').format(this);
+        break;
       case DateStampFormat.dd_mm_yyyy:
-        return DateFormat('dd-MM-yyyy').format(this);
+        s = DateFormat('dd-MM-yyyy').format(this);
+        break;
       case DateStampFormat.dd_mm_yy:
-        return DateFormat('dd-MM-yy').format(this);
+        s = DateFormat('dd-MM-yy').format(this);
+        break;
       case DateStampFormat.mm_dd_yyyy:
-        return DateFormat('MM-dd-yyyy').format(this);
+        s = DateFormat('MM-dd-yyyy').format(this);
+        break;
       case DateStampFormat.mm_dd_yy:
-        return DateFormat('MM-dd-yy').format(this);
+        s = DateFormat('MM-dd-yy').format(this);
+        break;
       case DateStampFormat.month_name_day_year_long:
-        return DateFormat('MMMM d, yyyy').format(this);
+        s = DateFormat('MMMM d, yyyy').format(this);
+        break;
       case DateStampFormat.month_abbrev_day_year:
-        return DateFormat('MMM d, yyyy').format(this);
+        s = DateFormat('MMM d, yyyy').format(this);
+        break;
       case DateStampFormat.day_month_name_year:
-        return DateFormat('d MMMM yyyy').format(this);
+        s = DateFormat('d MMMM yyyy').format(this);
+        break;
       case DateStampFormat.day_name_day_month_year:
-        return DateFormat('EEE, d MMM yyyy').format(this);
+        s = DateFormat('EEE, d MMM yyyy').format(this);
+        break;
       case DateStampFormat.day_name_full_day_month_year:
-        return DateFormat('EEEE, d MMMM yyyy').format(this);
+        s = DateFormat('EEEE, d MMMM yyyy').format(this);
+        break;
       case DateStampFormat.month_name_year:
-        return DateFormat('MMMM yyyy').format(this);
+        s = DateFormat('MMMM yyyy').format(this);
+        break;
       case DateStampFormat.month_abbrev_year:
-        return DateFormat('MMM yyyy').format(this);
+        s = DateFormat('MMM yyyy').format(this);
+        break;
       case DateStampFormat.day_number_only:
-        return DateFormat('d').format(this);
+        s = DateFormat('d').format(this);
+        break;
       case DateStampFormat.day_name_and_number:
-        return DateFormat('EEE d').format(this);
-      default:
-        return DateFormat('yyyy-MM-dd').format(this);
+        s = DateFormat('EEE d').format(this);
+        break;
     }
+    return s.isNotEmpty ? s : DateFormat('yyyy-MM-dd').format(this);
   }
 
   DateTime stringToDateWithFormat({

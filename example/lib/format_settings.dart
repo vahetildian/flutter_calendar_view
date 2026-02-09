@@ -307,6 +307,7 @@ enum CalendarViewType {
   week,
   multiDay,
   month,
+  year,
 }
 
 class FormatSettings {

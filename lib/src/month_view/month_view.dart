@@ -50,6 +50,11 @@ class MonthView<T extends Object?> extends StatefulWidget {
 
 /// State of month view.
 class MonthViewState<T extends Object?> extends State<MonthView<T>> {
+    /// Public getter for minimum date
+    DateTime get minDate => _minDate;
+
+    /// Public getter for maximum date
+    DateTime get maxDate => _maxDate;
   late DateTime _minDate;
   late DateTime _maxDate;
 

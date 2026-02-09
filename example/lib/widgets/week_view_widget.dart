@@ -7,13 +7,15 @@ import 'package:flutter/material.dart';
 import '../config/calendar_form_config.dart';
 import '../extension.dart';
 import '../format_settings.dart';
+import '../main.dart';
 import 'add_event_form.dart';
 
 class WeekViewWidget extends StatelessWidget {
   final GlobalKey<WeekViewState>? state;
   final double? width;
+  final Widget? viewSelector;
 
-  const WeekViewWidget({super.key, this.state, this.width});
+  const WeekViewWidget({super.key, this.state, this.width, this.viewSelector});
 
   String _formatHeader(DateTime start, DateTime? end, FormatSettings formats) {
     if (end == null) {
@@ -154,9 +156,33 @@ class WeekViewWidget extends StatelessWidget {
           dragSnapMinutes: config.weekDragSnapMinutes ?? config.dragSnapMinutes,
           heightPerMinute: config.weekHeightPerMinute,
           width: width,
+          headerStyle: HeaderStyle(
+            decoration: BoxDecoration(
+              color: weekHeaderBackgroundColor,
+            ),
+          ),
           timeLineBuilder: (date) => _timeLineBuilder(date, isLtr),
           headerStringBuilder: (date, {secondaryDate}) =>
               _formatHeader(date, secondaryDate, formats),
+          weekPageHeaderBuilder: viewSelector != null ? (startDate, endDate) {
+            final state = this.state?.currentState;
+            return CalendarPageHeader(
+              date: startDate,
+              secondaryDate: endDate,
+              dateStringBuilder: (date, {secondaryDate}) =>
+                  _formatHeader(date, secondaryDate, formats),
+              headerStyle: HeaderStyle(
+                decoration: BoxDecoration(
+                  color: weekHeaderBackgroundColor,
+                ),
+              ),
+              viewSelector: viewSelector,
+              onPreviousDay: state?.previousPage,
+              onNextDay: state?.nextPage,
+              showPreviousIcon: startDate != state?.minDate,
+              showNextIcon: endDate != state?.maxDate,
+            );
+          } : null,
           showWeekends: true,
           showLiveTimeLineInAllDays: true,
           onDateLongPress: (date) {
