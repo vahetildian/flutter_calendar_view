@@ -237,10 +237,10 @@ class MonthViewState<T extends Object?> extends State<MonthView<T>> {
                 onPageChanged: _onPageChange,
                 itemBuilder: (_, index) {
                   final date = DateTime(_minDate.year, _minDate.month + index);
-                  final weekDays = date.datesOfWeek(
-                    start: _monthViewStyle.startDay,
-                    showWeekEnds: _monthViewStyle.showWeekends,
-                  );
+                  // Dynamically use 5 or 7 columns for header and grid
+                  final headerWeekdays = _monthViewStyle.showWeekends
+                      ? List.generate(7, (i) => (i + 1)) // 1=Monday, ..., 7=Sunday
+                      : List.generate(5, (i) => (i + 1)); // 1=Monday, ..., 5=Friday
                   Widget monthPageContent = Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,16 +248,12 @@ class MonthViewState<T extends Object?> extends State<MonthView<T>> {
                       Container(
                         width: _width,
                         child: Row(
-                          children: List.generate(
-                            _monthViewStyle.showWeekends ? 7 : 5,
-                            (index) => Expanded(
-                              child: SizedBox(
-                                width: _cellWidth,
-                                child:
-                                    _weekBuilder(weekDays[index].weekday - 1),
-                              ),
-                            ),
-                          ),
+                          children: List.generate(headerWeekdays.length, (index) {
+                            final weekday = headerWeekdays[index];
+                            return Expanded(
+                              child: _weekBuilder(weekday - 1),
+                            );
+                          }),
                         ),
                       ),
                       Expanded(
@@ -355,8 +351,10 @@ class MonthViewState<T extends Object?> extends State<MonthView<T>> {
 
   void updateViewDimensions() {
     _width = widget.width ?? MediaQuery.of(context).size.width;
-    _cellWidth = _width / 7;
-    _cellHeight = _cellWidth / _monthViewStyle.cellAspectRatio;
+    // Always use 7 columns for height calculation to keep row height consistent
+    final columnsForHeight = 7;
+    _cellWidth = _width / (_monthViewStyle.showWeekends ? 7 : 5);
+    _cellHeight = (_width / columnsForHeight) / _monthViewStyle.cellAspectRatio;
     _height = _cellHeight * 6;
   }
 
@@ -675,9 +673,8 @@ class _MonthPageBuilder<T> extends StatelessWidget {
       startDay: startDay,
       hideDaysNotInMonth: hideDaysNotInMonth,
       showWeekends: weekDays == 7,
-    );
+    ).where((d) => weekDays == 7 || (d.weekday != DateTime.saturday && d.weekday != DateTime.sunday)).toList();
 
-    // Highlight tiles which is not in current month
     return SizedBox(
       width: width,
       height: height,
@@ -691,11 +688,11 @@ class _MonthPageBuilder<T> extends StatelessWidget {
         itemCount: monthDays.length,
         shrinkWrap: true,
         itemBuilder: (context, index) {
-          // Hide events if `hideDaysNotInMonth` true
+          final day = monthDays[index];
           final events =
-              hideDaysNotInMonth && (monthDays[index].month != date.month)
+              hideDaysNotInMonth && (day.month != date.month)
                   ? <CalendarEventData<T>>[]
-                  : controller.getEventsOnDay(monthDays[index]);
+                  : controller.getEventsOnDay(day);
           final cellContent = Container(
             decoration: BoxDecoration(
               border: showBorder
@@ -707,10 +704,10 @@ class _MonthPageBuilder<T> extends StatelessWidget {
                   : null,
             ),
             child: cellBuilder(
-              monthDays[index],
+              day,
               events,
-              monthDays[index].compareWithoutTime(DateTime.now()),
-              monthDays[index].month == date.month,
+              day.compareWithoutTime(DateTime.now()),
+              day.month == date.month,
               hideDaysNotInMonth,
             ),
           );
@@ -721,7 +718,6 @@ class _MonthPageBuilder<T> extends StatelessWidget {
               Positioned.fill(
                 child: DragTarget<Map<String, dynamic>>(
                   builder: (context, candidateData, rejectedData) {
-                    // If there's drag in progress, show drop target preview
                     if (candidateData.isNotEmpty) {
                       return Container(
                         color: Colors.blue.withOpacity(0.1),
@@ -735,99 +731,42 @@ class _MonthPageBuilder<T> extends StatelessWidget {
                   },
                   onAcceptWithDetails: (details) {
                     final payload = details.data;
-                    final oldEvent =
-                        payload['event'] as CalendarEventData<T>;
+                    final oldEvent = payload['event'] as CalendarEventData<T>;
                     final originalStart = payload['start'] as DateTime?;
                     final originalEnd = payload['end'] as DateTime?;
-
-                    final droppedDate = monthDays[index];
-                    
-                    // Simple approach: just update the event date directly
-                    if (oldEvent.isRecurringEvent) {
-                      // Preserve the day span if multi-day
-                      final DateTime newEventEndDate;
+                    final droppedDate = day;
+                    DateTime? newEndDate;
+                    if (oldEvent.endDate != null && oldEvent.date != null) {
                       if (oldEvent.endDate != oldEvent.date) {
-                        // Multi-day recurring event - preserve day span
                         final daySpan = oldEvent.endDate.difference(oldEvent.date).inDays;
-                        newEventEndDate = droppedDate.withoutTime.add(Duration(days: daySpan));
+                        newEndDate = droppedDate.withoutTime.add(Duration(days: daySpan));
                       } else {
-                        // Single-day recurring event - endDate equals date
-                        newEventEndDate = droppedDate.withoutTime;
-                      }
-
-                      // Update the recurrence settings to start from the new date
-                      final oldStartDate = oldEvent.date.withoutTime;
-                      final newStartDate = droppedDate.withoutTime;
-                      final startDateDelta = newStartDate.difference(oldStartDate);
-                      final oldRecurrenceEndDate =
-                          oldEvent.recurrenceSettings?.endDate?.withoutTime;
-                      final newRecurrenceEndDate = oldRecurrenceEndDate == null
-                          ? null
-                          : oldRecurrenceEndDate.add(startDateDelta);
-
-                      final updatedRecurrenceSettings =
-                          oldEvent.recurrenceSettings?.copyWith(
-                        startDate: newStartDate,
-                        endDate: newRecurrenceEndDate,
-                      );
-                      
-                      final updatedEvent = oldEvent.copyWith(
-                        date: droppedDate.withoutTime,
-                        endDate: newEventEndDate,
-                        recurrenceSettings: updatedRecurrenceSettings,
-                      );
-                      
-                      controller.remove(oldEvent);
-                      controller.add(updatedEvent);
-                    } else {
-                      // Non-recurring event: update in-place
-                      
-                      // Compute new endDate: single-day events should have endDate == date,
-                      // multi-day events should preserve their day span
-                      final DateTime newEndDate;
-                      if (oldEvent.endDate != oldEvent.date) {
-                        // Multi-day event - preserve day span
-                        final daySpan =
-                            oldEvent.endDate.difference(oldEvent.date).inDays;
-                        newEndDate = DateTime(
-                          droppedDate.year,
-                          droppedDate.month,
-                          droppedDate.day,
-                        ).add(Duration(days: daySpan));
-                      } else {
-                        // Single-day event - ensure endDate equals date
                         newEndDate = droppedDate.withoutTime;
                       }
-
-                      // For timed events, preserve duration; for full-day, preserve null times
-                      if (originalStart != null && originalEnd != null) {
-                        // Timed event - compute new start/end preserving duration
-                        final newStart = DateTime(
-                          droppedDate.year,
-                          droppedDate.month,
-                          droppedDate.day,
-                          originalStart.hour,
-                          originalStart.minute,
-                        );
-                        final duration =
-                            originalEnd.difference(originalStart);
-                        final newEnd = newStart.add(duration);
-
-                        final updated = oldEvent.copyWith(
-                          date: droppedDate.withoutTime,
-                          startTime: newStart,
-                          endTime: newEnd,
-                          endDate: newEndDate,
-                        );
-                        controller.update(oldEvent, updated);
-                      } else {
-                        // Full-day event - only update date/endDate, leave times null
-                        final updated = oldEvent.copyWith(
-                          date: droppedDate.withoutTime,
-                          endDate: newEndDate,
-                        );
-                        controller.update(oldEvent, updated);
-                      }
+                    }
+                    if (originalStart != null && originalEnd != null) {
+                      final newStart = DateTime(
+                        droppedDate.year,
+                        droppedDate.month,
+                        droppedDate.day,
+                        originalStart.hour,
+                        originalStart.minute,
+                      );
+                      final duration = originalEnd.difference(originalStart);
+                      final newEnd = newStart.add(duration);
+                      final updated = oldEvent.copyWith(
+                        date: droppedDate.withoutTime,
+                        startTime: newStart,
+                        endTime: newEnd,
+                        endDate: newEndDate,
+                      );
+                      controller.update(oldEvent, updated);
+                    } else {
+                      final updated = oldEvent.copyWith(
+                        date: droppedDate.withoutTime,
+                        endDate: newEndDate,
+                      );
+                      controller.update(oldEvent, updated);
                     }
                   },
                 ),
@@ -843,13 +782,12 @@ class _MonthPageBuilder<T> extends StatelessWidget {
                     },
                     onTapUp: (details) {
                       if (tapDownPosition == null) return;
-                      final moved =
-                          (details.localPosition - tapDownPosition!).distance;
+                      final moved = (details.localPosition - tapDownPosition!).distance;
                       if (moved > maxMoveDistance) return;
                       if (onDateLongPress != null) {
-                        onDateLongPress?.call(monthDays[index]);
+                        onDateLongPress?.call(day);
                       } else {
-                        onCellTap?.call(events, monthDays[index]);
+                        onCellTap?.call(events, day);
                       }
                     },
                     onTapCancel: () {

@@ -150,20 +150,11 @@ extension DateTimeExtensions on DateTime {
     bool showWeekends = true,
   }) {
     final monthDays = <DateTime>[];
-    // Start is the first weekday for each week in a month
+    // Always generate the full 6x7 grid (6 weeks, 7 days per week)
     for (var i = 1, start = 1; i < 7; i++, start += 7) {
-      final datesInWeek =
-          DateTime(year, month, start).datesOfWeek(start: startDay).where(
-                (day) =>
-                    showWeekends ||
-                    (day.weekday != DateTime.saturday &&
-                        day.weekday != DateTime.sunday),
-              );
-      // Check does every date of week belongs to different month
-      final allDatesNotInCurrentMonth = datesInWeek.every((date) {
-        return date.month != month;
-      });
-      // if entire row contains dates of other month then skip it
+      final datesInWeek = DateTime(year, month, start).datesOfWeek(start: startDay);
+      // Only skip the week if ALL 7 days are not in the current month AND hideDaysNotInMonth is true
+      final allDatesNotInCurrentMonth = datesInWeek.every((date) => date.month != month);
       if (hideDaysNotInMonth && allDatesNotInCurrentMonth) {
         continue;
       }
