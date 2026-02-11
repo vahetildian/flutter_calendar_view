@@ -526,20 +526,15 @@ class _InternalWeekViewPageState<T> extends State<InternalWeekViewPage<T>> {
                                         final payloadEvent = payload['event'] as CalendarEventData<T>?;
                                         final start = payload['start'] as DateTime?;
                                         final end = payload['end'] as DateTime?;
-                                        final occurrenceDate = payload['occurrenceDate'] as DateTime?;
+                                        final occurrenceDateRaw = payload['occurrenceDate'] as DateTime?;
+                                        final occurrenceDate = occurrenceDateRaw?.withoutTime;
                                         if (payloadEvent == null || start == null || end == null) return;
 
                                         final oldEvent = (payloadEvent.event is CalendarEventData<T>)
                                             ? payloadEvent.event as CalendarEventData<T>
                                             : payloadEvent;
 
-                                        print('[WeekView Drag] ===== Drop Accepted =====');
-                                        print('[WeekView Drag] Payload event: ${payloadEvent.title}');
-                                        print('[WeekView Drag] Old event: ${oldEvent.title}, date=${oldEvent.date}, isRecurring=${oldEvent.isRecurringEvent}');
-                                        if (oldEvent.recurrenceSettings != null) {
-                                          print('[WeekView Drag] Recurrence settings: ${oldEvent.recurrenceSettings}');
-                                        }
-
+                                  
                                         final renderObject =
                                           _dayColumnKeys[index].currentContext
                                             ?.findRenderObject();
@@ -594,8 +589,11 @@ class _InternalWeekViewPageState<T> extends State<InternalWeekViewPage<T>> {
 
                                         RecurrenceSettings? updatedRecurrenceSettings;
                                         if (oldEvent.isRecurringEvent && oldEvent.recurrenceSettings != null) {
-                                          final oldStartDate = (occurrenceDate ?? oldEvent.date).withoutTime;
-                                          final newStartDate = widget.dates[index].withoutTime;
+                                            final oldStartDate =
+                                              (oldEvent.recurrenceSettings?.startDate ??
+                                                  oldEvent.date)
+                                                .withoutTime;
+                                            final newStartDate = newStart.withoutTime;
                                           final startDateDelta = newStartDate.difference(oldStartDate);
                                           final oldRecurrenceEndDate = oldEvent.recurrenceSettings!.endDate;
                                           final newRecurrenceEndDate = oldRecurrenceEndDate == null
@@ -608,8 +606,6 @@ class _InternalWeekViewPageState<T> extends State<InternalWeekViewPage<T>> {
                                             newWeekdays = oldEvent.recurrenceSettings!.weekdays.map((weekday) {
                                               return (weekday + dayShift) % 7;
                                             }).toList();
-                                            print('[WeekView Drag] Shifting weekdays by $dayShift');
-                                            print('[WeekView Drag] Old weekdays: ${oldEvent.recurrenceSettings!.weekdays}, new: $newWeekdays');
                                           }
 
                                           updatedRecurrenceSettings = oldEvent.recurrenceSettings!.copyWith(
@@ -618,9 +614,6 @@ class _InternalWeekViewPageState<T> extends State<InternalWeekViewPage<T>> {
                                             weekdays: newWeekdays,
                                           );
 
-                                          print('[WeekView Drag] Occurrence date: $occurrenceDate');
-                                          print('[WeekView Drag] Old recurrence start: $oldStartDate, new: $newStartDate');
-                                          print('[WeekView Drag] Old recurrence end: $oldRecurrenceEndDate, new: $newRecurrenceEndDate');
                                         }
 
                                         final updated = oldEvent.copyWith(
@@ -632,8 +625,7 @@ class _InternalWeekViewPageState<T> extends State<InternalWeekViewPage<T>> {
                                               updatedRecurrenceSettings ?? oldEvent.recurrenceSettings,
                                         );
 
-                                        print('[WeekView Drag] Updated event: ${updated.title}, date=${updated.date}, isRecurring=${updated.isRecurringEvent}');
-
+                                 
                                         widget.controller.update(oldEvent, updated);
                                       },
                                       builder: (context, candidate, rejected) {

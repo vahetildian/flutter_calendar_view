@@ -163,6 +163,11 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
   /// If true, drag/drop times snap to nearest 5-minute slot.
   final bool stickyTimeSlot;
 
+  /// Minute interval for sticky drag-and-drop snapping.
+  ///
+  /// Used only when [stickyTimeSlot] is true.
+  final int dragSnapMinutes;
+
   /// Use this field to disable the calendar scrolling
   final ScrollPhysics? scrollPhysics;
 
@@ -221,6 +226,7 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
     required this.scrollPhysics,
     required this.onTimestampTap,
     this.stickyTimeSlot = true,
+    this.dragSnapMinutes = 5,
     this.fullDayHeaderTitle = '',
   }) : super(key: key);
 
@@ -502,25 +508,22 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
                                       endHour: widget.endHour,
                                     ),
                                     DragTarget<Map<String, dynamic>>(
-                                      onWillAccept: (data) => data != null,
+                                      onWillAccept: (data) {
+                                        final shouldAccept = data != null;
+                                       return shouldAccept;
+                                      },
                                       onAcceptWithDetails: (details) {
-                                        final payload = details.data;
+                                       final payload = details.data;
                                         final payloadEvent = payload['event'] as CalendarEventData<T>?;
                                         final start = payload['start'] as DateTime?;
                                         final end = payload['end'] as DateTime?;
-                                        final occurrenceDate = payload['occurrenceDate'] as DateTime?;
+                                        final occurrenceDateRaw = payload['occurrenceDate'] as DateTime?;
+                                        final occurrenceDate = occurrenceDateRaw?.withoutTime;
                                         if (payloadEvent == null || start == null || end == null) return;
 
                                         final oldEvent = (payloadEvent.event is CalendarEventData<T>)
                                             ? payloadEvent.event as CalendarEventData<T>
                                             : payloadEvent;
-
-                                        print('[MultiDayView Drag] ===== Drop Accepted =====');
-                                        print('[MultiDayView Drag] Payload event: ${payloadEvent.title}');
-                                        print('[MultiDayView Drag] Old event: ${oldEvent.title}, date=${oldEvent.date}, isRecurring=${oldEvent.isRecurringEvent}');
-                                        if (oldEvent.recurrenceSettings != null) {
-                                          print('[MultiDayView Drag] Recurrence settings: ${oldEvent.recurrenceSettings}');
-                                        }
 
                                         final keyBox = _dayColumnKeys[index].currentContext?.findRenderObject() as RenderBox?;
                                         final box = keyBox ?? context.findRenderObject() as RenderBox;
@@ -531,7 +534,11 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
                                         var newStartMinutes =
                                             (widget.startHour * 60) + minutesFromTop.round();
                                         if (widget.stickyTimeSlot) {
-                                          newStartMinutes = ((newStartMinutes + 2) ~/ 5) * 5;
+                                          final snap = widget.dragSnapMinutes;
+                                          final halfSnap = snap ~/ 2;
+                                          newStartMinutes =
+                                              ((newStartMinutes + halfSnap) ~/ snap) *
+                                                  snap;
                                         }
 
                                         final newStart = DateTime(
@@ -543,10 +550,7 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
                                         final duration = end.difference(start);
                                         final newEnd = newStart.add(duration);
 
-                                        print('[MultiDayView Drag] Calculated: newStart=$newStart, newEnd=$newEnd, duration=$duration');
-                                        print('[MultiDayView Drag] Day check: newStart.day=${newStart.day}, newEnd.day=${newEnd.day}');
-                                        print('[MultiDayView Drag] newEnd time: hour=${newEnd.hour}, minute=${newEnd.minute}, second=${newEnd.second}');
-
+                                  
                                         // Calculate newEndDate based on actual start/end times
                                         // Check if the actual times span into the next day
                                         final DateTime newEndDate;
@@ -570,8 +574,11 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
 
                                         RecurrenceSettings? updatedRecurrenceSettings;
                                         if (oldEvent.isRecurringEvent && oldEvent.recurrenceSettings != null) {
-                                          final oldStartDate = (occurrenceDate ?? oldEvent.date).withoutTime;
-                                          final newStartDate = widget.dates[index].withoutTime;
+                                            final oldStartDate =
+                                              (oldEvent.recurrenceSettings?.startDate ??
+                                                  oldEvent.date)
+                                                .withoutTime;
+                                            final newStartDate = newStart.withoutTime;
                                           final startDateDelta = newStartDate.difference(oldStartDate);
                                           final oldRecurrenceEndDate = oldEvent.recurrenceSettings!.endDate;
                                           final newRecurrenceEndDate = oldRecurrenceEndDate != null
@@ -584,20 +591,14 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
                                             newWeekdays = oldEvent.recurrenceSettings!.weekdays.map((weekday) {
                                               return (weekday + dayShift) % 7;
                                             }).toList();
-                                            print('[MultiDayView Drag] Shifting weekdays by $dayShift');
-                                            print('[MultiDayView Drag] Old weekdays: ${oldEvent.recurrenceSettings!.weekdays}, new: $newWeekdays');
-                                          }
+                                           }
 
                                           updatedRecurrenceSettings = oldEvent.recurrenceSettings!.copyWith(
                                             startDate: newStartDate,
                                             endDate: newRecurrenceEndDate,
                                             weekdays: newWeekdays,
                                           );
-
-                                          print('[MultiDayView Drag] Occurrence date: $occurrenceDate');
-                                          print('[MultiDayView Drag] Old recurrence start: $oldStartDate, new: $newStartDate');
-                                          print('[MultiDayView Drag] Old recurrence end: $oldRecurrenceEndDate, new: $newRecurrenceEndDate');
-                                        }
+     }
 
                                         final updated = oldEvent.copyWith(
                                           date: widget.dates[index],
@@ -606,8 +607,6 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
                                           endDate: newEndDate,
                                           recurrenceSettings: updatedRecurrenceSettings ?? oldEvent.recurrenceSettings,
                                         );
-
-                                        print('[MultiDayView Drag] Updated event: ${updated.title}, date=${updated.date}, isRecurring=${updated.isRecurringEvent}');
 
                                         widget.controller.update(oldEvent, updated);
                                       },

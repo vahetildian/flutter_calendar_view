@@ -135,18 +135,36 @@ class EventController<T extends Object?> extends ChangeNotifier {
   /// event in the controller.
   ///
   void update(CalendarEventData<T> event, CalendarEventData<T> updated) {
-    print('[EventController.update] Called from controller level');
-    print('[EventController.update]   Old: ${event.title}, date: ${event.date}, hashCode: ${event.hashCode}, isRecurring: ${event.isRecurringEvent}');
-    print('[EventController.update]   New: ${updated.title}, date: ${updated.date}, hashCode: ${updated.hashCode}, isRecurring: ${updated.isRecurringEvent}');
-    if (event.isRecurringEvent) {
-      print('[EventController.update]   Old recurrence: ${event.recurrenceSettings}');
-      print('[EventController.update]   New recurrence: ${updated.recurrenceSettings}');
+     var adjustedUpdated = updated;
+    if (event.isRecurringEvent &&
+        updated.isRecurringEvent &&
+        event.recurrenceSettings != null &&
+        identical(event.recurrenceSettings, updated.recurrenceSettings)) {
+      final oldStart =
+          (event.recurrenceSettings?.startDate ?? event.date).withoutTime;
+      final newStart = updated.date.withoutTime;
+      final delta = newStart.difference(oldStart);
+      if (delta.inDays != 0) {
+        final oldSettings = event.recurrenceSettings!;
+        final newEnd = oldSettings.endDate?.add(delta);
+        List<int>? newWeekdays;
+        if (oldSettings.frequency == RepeatFrequency.weekly) {
+          final dayShift = delta.inDays % 7;
+          newWeekdays = oldSettings.weekdays
+              .map((weekday) => (weekday + dayShift) % 7)
+              .toList();
+        }
+        final newSettings = oldSettings.copyWith(
+          startDate: newStart,
+          endDate: newEnd,
+          weekdays: newWeekdays,
+        );
+        adjustedUpdated = updated.copyWith(recurrenceSettings: newSettings);
+       }
     }
-    _calendarData.updateEvent(event, updated);
-    print('[EventController.update] Calling notifyListeners');
-    notifyListeners();
-    print('[EventController.update] notifyListeners complete');
-  }
+    _calendarData.updateEvent(event, adjustedUpdated);
+     notifyListeners();
+   }
 
   /// Removes all the [events] from this controller.
   void removeAll(List<CalendarEventData<T>> events) {
@@ -333,30 +351,24 @@ class CalendarData<T extends Object?> {
     assert(event.endDate.difference(event.date).inDays >= 0,
         'The end date must be greater or equal to the start date');
 
-    print('[EventController] addEvent called: ${event.title}, date: ${event.date}, isRecurring: ${event.isRecurringEvent}, isFullDay: ${event.isFullDayEvent}, isRanging: ${event.isRangingEvent}');
-
+   
     // Avoid adding the same event instance twice, but allow events
     // that are value-equal (e.g., same title/time) as distinct items.
     if (_eventList.any((e) => identical(e, event))) {
-      print('[EventController]   Skipping - identical event already exists');
       return;
     }
 
     if (event.isRecurringEvent) {
-      print('[EventController]   Adding as recurring event');
       _eventList.add(event);
       _recurringEventsList.add(event);
       return;
     }
 
     if (event.isFullDayEvent) {
-      print('[EventController]   Adding as full day event');
-      addFullDayEvent(event);
+       addFullDayEvent(event);
     } else if (event.isRangingEvent) {
-      print('[EventController]   Adding as ranging event');
-      addRangingEvent(event);
+       addRangingEvent(event);
     } else {
-      print('[EventController]   Adding as single day event for date: ${event.date}');
       addSingleDayEvent(event);
     }
   }
@@ -414,14 +426,10 @@ class CalendarData<T extends Object?> {
 
   void updateEvent(
       CalendarEventData<T> oldEvent, CalendarEventData<T> newEvent) {
-    print('[EventController] updateEvent called');
-    print('[EventController]   Old event: ${oldEvent.title}, date: ${oldEvent.date}, isRecurring: ${oldEvent.isRecurringEvent}, hashCode: ${oldEvent.hashCode}');
-    print('[EventController]   New event: ${newEvent.title}, date: ${newEvent.date}, isRecurring: ${newEvent.isRecurringEvent}, hashCode: ${newEvent.hashCode}');
     
     // Remove the old event from wherever it is stored (by identity),
     // then add the new event so it lands in the correct bucket.
     final masterIdx = _eventList.indexWhere((e) => identical(e, oldEvent));
-    print('[EventController]   Found in master list at index: $masterIdx');
     if (masterIdx != -1) _eventList.removeAt(masterIdx);
 
     // Remove from single day map if present
@@ -430,7 +438,6 @@ class CalendarData<T extends Object?> {
       final list = _singleDayEvents[key]!;
       final idx = list.indexWhere((e) => identical(e, oldEvent));
       if (idx != -1) {
-        print('[EventController]   Found in single day map for date: $key');
         list.removeAt(idx);
         if (list.isEmpty) singleKeyToRemove = key;
         break;
@@ -441,32 +448,25 @@ class CalendarData<T extends Object?> {
     // Remove from ranging list
     final rIdx = _rangingEventList.indexWhere((e) => identical(e, oldEvent));
     if (rIdx != -1) {
-      print('[EventController]   Found in ranging list at index: $rIdx');
       _rangingEventList.removeAt(rIdx);
     }
 
     // Remove from full day list
     final fIdx = _fullDayEventList.indexWhere((e) => identical(e, oldEvent));
     if (fIdx != -1) {
-      print('[EventController]   Found in full day list at index: $fIdx');
       _fullDayEventList.removeAt(fIdx);
     }
 
     // Remove from recurring list
     final recIdx = _recurringEventsList.indexWhere((e) => identical(e, oldEvent));
     if (recIdx != -1) {
-      print('[EventController]   Found in recurring list at index: $recIdx');
       _recurringEventsList.removeAt(recIdx);
     }
 
-    print('[EventController]   Adding new event...');
     // Finally add the new event
     addEvent(newEvent);
     
-    print('[EventController]   After add - _eventList.length: ${_eventList.length}');
-    print('[EventController]   After add - _recurringEventsList.length: ${_recurringEventsList.length}');
-    print('[EventController]   After add - _singleDayEvents keys: ${_singleDayEvents.keys.toList()}');
-  }
+   }
   //#endregion
 
   //#region Helper Methods
@@ -621,25 +621,19 @@ class CalendarData<T extends Object?> {
     final events = <CalendarEventData<T>>[];
 
     if (_singleDayEvents[date] != null) {
-      print('[EventController] getEventsOnDay($date): Found ${_singleDayEvents[date]!.length} single-day events');
-      for (final e in _singleDayEvents[date]!) {
-        print('[EventController]   - ${e.title}');
-      }
-      events.addAll(_singleDayEvents[date]!);
+        events.addAll(_singleDayEvents[date]!);
     }
 
     // TODO(Shubham): Add recurrence support for ranging events
     for (final rangingEvent in _rangingEventList) {
       if (rangingEvent.occursOnDate(date)) {
-        print('[EventController] getEventsOnDay($date): Found ranging event: ${rangingEvent.title}');
-        events.add(rangingEvent);
+         events.add(rangingEvent);
       }
     }
 
     if (includeFullDayEvents) {
       final fullDayEvents = getFullDayEvent(date);
       if (fullDayEvents.isNotEmpty) {
-        print('[EventController] getEventsOnDay($date): Found ${fullDayEvents.length} full-day events');
       }
       events.addAll(fullDayEvents);
     }
@@ -648,12 +642,6 @@ class CalendarData<T extends Object?> {
     final recurringEvents = getRecurringEventsOnDay(date)
         .where((event) => (!event.isFullDayEvent && !event.isRangingEvent))
         .toList();
-    if (recurringEvents.isNotEmpty) {
-      print('[EventController] getEventsOnDay($date): Found ${recurringEvents.length} recurring events');
-      for (final e in recurringEvents) {
-        print('[EventController]   - ${e.title}');
-      }
-    }
     events.addAll(recurringEvents);
 
     // Inside event arranger we require all the events to be sorted
@@ -663,12 +651,7 @@ class CalendarData<T extends Object?> {
         (a.startTime?.getTotalMinutes ?? 0) -
         (b.startTime?.getTotalMinutes ?? 0));
     
-    if (events.isEmpty) {
-      print('[EventController] getEventsOnDay($date): No events found');
-    } else {
-      print('[EventController] getEventsOnDay($date): Returning ${events.length} total events');
-    }
-    return events;
+      return events;
   }
 
   /// Returns repeated events on given date.

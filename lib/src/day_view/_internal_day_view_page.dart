@@ -360,15 +360,10 @@ class _InternalDayViewPageState<T extends Object?>
                                 : payloadEvent;
                             final originalStart = payload['start'] as DateTime;
                             final originalEnd = payload['end'] as DateTime;
-                            final occurrenceDate = payload['occurrenceDate'] as DateTime?;
+                            final occurrenceDateRaw = payload['occurrenceDate'] as DateTime?;
+                            final occurrenceDate = occurrenceDateRaw?.withoutTime;
 
-                            print('[DayView Drag] ===== Drop Accepted =====');
-                            print('[DayView Drag] Payload event: ${payloadEvent.title}');
-                            print('[DayView Drag] Old event: ${oldEvent.title}, date=${oldEvent.date}, isRecurring=${oldEvent.isRecurringEvent}');
-                            if (oldEvent.recurrenceSettings != null) {
-                              print('[DayView Drag] Recurrence settings: ${oldEvent.recurrenceSettings}');
-                            }
-
+                          
                             final renderBox = _dayKey.currentContext?.findRenderObject() as RenderBox?;
                             if (renderBox == null) return;
 
@@ -412,7 +407,10 @@ class _InternalDayViewPageState<T extends Object?>
 
                             RecurrenceSettings? updatedRecurrenceSettings;
                             if (oldEvent.isRecurringEvent && oldEvent.recurrenceSettings != null) {
-                              final oldStartDate = (occurrenceDate ?? oldEvent.date).withoutTime;
+                                final oldStartDate =
+                                  (oldEvent.recurrenceSettings?.startDate ??
+                                      oldEvent.date)
+                                    .withoutTime;
                               final newStartDate = newStart.withoutTime;
                               final startDateDelta = newStartDate.difference(oldStartDate);
                               final oldRecurrenceEndDate = oldEvent.recurrenceSettings!.endDate;
@@ -426,8 +424,6 @@ class _InternalDayViewPageState<T extends Object?>
                                 newWeekdays = oldEvent.recurrenceSettings!.weekdays.map((weekday) {
                                   return (weekday + dayShift) % 7;
                                 }).toList();
-                                print('[DayView Drag] Shifting weekdays by $dayShift');
-                                print('[DayView Drag] Old weekdays: ${oldEvent.recurrenceSettings!.weekdays}, new: $newWeekdays');
                               }
 
                               updatedRecurrenceSettings = oldEvent.recurrenceSettings!.copyWith(
@@ -435,11 +431,7 @@ class _InternalDayViewPageState<T extends Object?>
                                 endDate: newRecurrenceEndDate,
                                 weekdays: newWeekdays,
                               );
-
-                              print('[DayView Drag] Occurrence date: $occurrenceDate');
-                              print('[DayView Drag] Old recurrence start: $oldStartDate, new: $newStartDate');
-                              print('[DayView Drag] Old recurrence end: $oldRecurrenceEndDate, new: $newRecurrenceEndDate');
-                            }
+   }
 
                             final updated = oldEvent.copyWith(
                               date: newStart.withoutTime,
@@ -449,8 +441,7 @@ class _InternalDayViewPageState<T extends Object?>
                               recurrenceSettings: updatedRecurrenceSettings ?? oldEvent.recurrenceSettings,
                             );
 
-                            print('[DayView Drag] Updated event: ${updated.title}, date=${updated.date}, isRecurring=${updated.isRecurringEvent}');
-
+                      
                             widget.controller.update(oldEvent, updated);
                           } catch (_) {}
                         },
