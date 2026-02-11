@@ -137,7 +137,7 @@ class EventController<T extends Object?> extends ChangeNotifier {
   void update(CalendarEventData<T> event, CalendarEventData<T> updated) {
     _calendarData.updateEvent(event, updated);
     notifyListeners();
-  }
+   }
 
   /// Removes all the [events] from this controller.
   void removeAll(List<CalendarEventData<T>> events) {
@@ -324,9 +324,12 @@ class CalendarData<T extends Object?> {
     assert(event.endDate.difference(event.date).inDays >= 0,
         'The end date must be greater or equal to the start date');
 
+  
     // Avoid adding the same event instance twice, but allow events
     // that are value-equal (e.g., same title/time) as distinct items.
-    if (_eventList.any((e) => identical(e, event))) return;
+    if (_eventList.any((e) => identical(e, event))) {
+      return;
+    }
 
     if (event.isRecurringEvent) {
       _eventList.add(event);
@@ -396,6 +399,7 @@ class CalendarData<T extends Object?> {
 
   void updateEvent(
       CalendarEventData<T> oldEvent, CalendarEventData<T> newEvent) {
+    
     // Remove the old event from wherever it is stored (by identity),
     // then add the new event so it lands in the correct bucket.
     final masterIdx = _eventList.indexWhere((e) => identical(e, oldEvent));
@@ -416,18 +420,25 @@ class CalendarData<T extends Object?> {
 
     // Remove from ranging list
     final rIdx = _rangingEventList.indexWhere((e) => identical(e, oldEvent));
-    if (rIdx != -1) _rangingEventList.removeAt(rIdx);
+    if (rIdx != -1) {
+      _rangingEventList.removeAt(rIdx);
+    }
 
     // Remove from full day list
     final fIdx = _fullDayEventList.indexWhere((e) => identical(e, oldEvent));
-    if (fIdx != -1) _fullDayEventList.removeAt(fIdx);
+    if (fIdx != -1) {
+      _fullDayEventList.removeAt(fIdx);
+    }
 
     // Remove from recurring list
     final recIdx = _recurringEventsList.indexWhere((e) => identical(e, oldEvent));
-    if (recIdx != -1) _recurringEventsList.removeAt(recIdx);
+    if (recIdx != -1) {
+      _recurringEventsList.removeAt(recIdx);
+    }
 
     // Finally add the new event
     addEvent(newEvent);
+    
   }
   //#endregion
 
@@ -444,9 +455,6 @@ class CalendarData<T extends Object?> {
     final recurrenceEndDate = settings.endDate;
     final isExcluded = (recurrenceEndDate != null && date.isAfter(recurrenceEndDate)) ||
         (settings.excludeDates?.contains(date) ?? false);
-    if (settings.excludeDates != null && settings.excludeDates!.isNotEmpty) {
-      print('[EventController] _isExcluded check - date: $date, excludeDates: ${settings.excludeDates}, isExcluded: $isExcluded');
-    }
     return isExcluded;
   }
 
@@ -586,6 +594,8 @@ class CalendarData<T extends Object?> {
     final events = <CalendarEventData<T>>[];
 
     if (_singleDayEvents[date] != null) {
+      for (final e in _singleDayEvents[date]!) {
+      }
       events.addAll(_singleDayEvents[date]!);
     }
 
@@ -597,7 +607,10 @@ class CalendarData<T extends Object?> {
     }
 
     if (includeFullDayEvents) {
-      events.addAll(getFullDayEvent(date));
+      final fullDayEvents = getFullDayEvent(date);
+      if (fullDayEvents.isNotEmpty) {
+      }
+      events.addAll(fullDayEvents);
     }
 
     // Add single day recurring events
@@ -612,6 +625,7 @@ class CalendarData<T extends Object?> {
     events.sort((a, b) =>
         (a.startTime?.getTotalMinutes ?? 0) -
         (b.startTime?.getTotalMinutes ?? 0));
+    
     return events;
   }
 

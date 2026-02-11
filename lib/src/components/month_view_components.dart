@@ -212,15 +212,6 @@ class FilledCell<T extends Object?> extends StatelessWidget {
                             'start': event.startTime,
                             'end': event.endTime,
                           },
-                          onDragStarted: () {
-                            print('[Drag] Started dragging: ${event.title}');
-                          },
-                          onDragCompleted: () {
-                            print('[Drag] Completed: ${event.title} - drop was accepted');
-                          },
-                          onDraggableCanceled: (velocity, offset) {
-                            print('[Drag] Canceled: ${event.title} - drop target rejected or no target found');
-                          },
                           feedback: Material(
                             color: Colors.transparent,
                             child: ConstrainedBox(

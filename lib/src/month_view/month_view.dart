@@ -719,6 +719,7 @@ class _MonthPageBuilder<T> extends StatelessWidget {
                 child: DragTarget<Map<String, dynamic>>(
                   builder: (context, candidateData, rejectedData) {
                     if (candidateData.isNotEmpty) {
+                      // Drag is hovering over this cell
                       return Container(
                         color: Colors.blue.withOpacity(0.1),
                       );
@@ -731,19 +732,59 @@ class _MonthPageBuilder<T> extends StatelessWidget {
                   },
                   onAcceptWithDetails: (details) {
                     final payload = details.data;
-                    final oldEvent = payload['event'] as CalendarEventData<T>;
+                    final wrappedEvent = payload['event'] as CalendarEventData<T>;
                     final originalStart = payload['start'] as DateTime?;
                     final originalEnd = payload['end'] as DateTime?;
                     final droppedDate = day;
+                    
+                    
+                    // Extract the ORIGINAL event from wrapped event
+                    // The original event is stored in the 'event' field by the cellBuilder
+                    final oldEvent = (wrappedEvent.event is CalendarEventData<T>) 
+                        ? wrappedEvent.event as CalendarEventData<T>
+                        : wrappedEvent;
+                    
+                    
                     DateTime? newEndDate;
-                    if (oldEvent.endDate != null && oldEvent.date != null) {
-                      if (oldEvent.endDate != oldEvent.date) {
-                        final daySpan = oldEvent.endDate.difference(oldEvent.date).inDays;
-                        newEndDate = droppedDate.withoutTime.add(Duration(days: daySpan));
-                      } else {
-                        newEndDate = droppedDate.withoutTime;
-                      }
+                    if (oldEvent.endDate != oldEvent.date) {
+                      final daySpan = oldEvent.endDate.difference(oldEvent.date).inDays;
+                      newEndDate = droppedDate.withoutTime.add(Duration(days: daySpan));
+                    } else {
+                      newEndDate = droppedDate.withoutTime;
                     }
+                    
+                    CalendarEventData<T> updated;
+                    
+                    // Calculate updated recurrence settings if event is recurring
+                    RecurrenceSettings? newRecurrenceSettings;
+                    if (oldEvent.isRecurringEvent && oldEvent.recurrenceSettings != null) {
+                      final oldStartDate = oldEvent.date.withoutTime;
+                      final newStartDate = droppedDate.withoutTime;
+                      final dateDelta = newStartDate.difference(oldStartDate);
+                      
+                      final oldRecurrenceEndDate = oldEvent.recurrenceSettings!.endDate;
+                      final newRecurrenceEndDate = oldRecurrenceEndDate != null
+                          ? oldRecurrenceEndDate.add(dateDelta)
+                          : null;
+                      
+                      // For weekly recurrence, shift the weekdays by the day difference
+                      List<int>? newWeekdays;
+                      if (oldEvent.recurrenceSettings!.frequency == RepeatFrequency.weekly) {
+                        final dayShift = dateDelta.inDays % 7;
+                        newWeekdays = oldEvent.recurrenceSettings!.weekdays.map((weekday) {
+                          // weekdays are 0-based (0=Monday, 6=Sunday)
+                          return (weekday + dayShift) % 7;
+                        }).toList();
+                      }
+                      
+                      newRecurrenceSettings = oldEvent.recurrenceSettings!.copyWith(
+                        startDate: newStartDate,
+                        endDate: newRecurrenceEndDate,
+                        weekdays: newWeekdays,
+                      );
+                      
+                    }
+                    
                     if (originalStart != null && originalEnd != null) {
                       final newStart = DateTime(
                         droppedDate.year,
@@ -754,20 +795,29 @@ class _MonthPageBuilder<T> extends StatelessWidget {
                       );
                       final duration = originalEnd.difference(originalStart);
                       final newEnd = newStart.add(duration);
-                      final updated = oldEvent.copyWith(
+                      
+                      
+                      updated = oldEvent.copyWith(
                         date: droppedDate.withoutTime,
                         startTime: newStart,
                         endTime: newEnd,
                         endDate: newEndDate,
+                        recurrenceSettings: newRecurrenceSettings ?? oldEvent.recurrenceSettings,
                       );
-                      controller.update(oldEvent, updated);
                     } else {
-                      final updated = oldEvent.copyWith(
+                      
+                      updated = oldEvent.copyWith(
                         date: droppedDate.withoutTime,
                         endDate: newEndDate,
+                        recurrenceSettings: newRecurrenceSettings ?? oldEvent.recurrenceSettings,
                       );
-                      controller.update(oldEvent, updated);
                     }
+                    
+                    try {
+                      controller.update(oldEvent, updated);
+                    } catch (e, stackTrace) {
+                    }
+                    
                   },
                 ),
               ),
