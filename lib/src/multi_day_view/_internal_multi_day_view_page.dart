@@ -505,12 +505,22 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
                                       onWillAccept: (data) => data != null,
                                       onAcceptWithDetails: (details) {
                                         final payload = details.data;
-                                        final event = payload['event'] as CalendarEventData<T>?;
+                                        final payloadEvent = payload['event'] as CalendarEventData<T>?;
                                         final start = payload['start'] as DateTime?;
                                         final end = payload['end'] as DateTime?;
-                                        if (event == null || start == null || end == null) return;
+                                        final occurrenceDate = payload['occurrenceDate'] as DateTime?;
+                                        if (payloadEvent == null || start == null || end == null) return;
 
-                                        print('[MultiDayView Drag] Original event: date=${event.date}, endDate=${event.endDate}, startTime=${event.startTime}, endTime=${event.endTime}');
+                                        final oldEvent = (payloadEvent.event is CalendarEventData<T>)
+                                            ? payloadEvent.event as CalendarEventData<T>
+                                            : payloadEvent;
+
+                                        print('[MultiDayView Drag] ===== Drop Accepted =====');
+                                        print('[MultiDayView Drag] Payload event: ${payloadEvent.title}');
+                                        print('[MultiDayView Drag] Old event: ${oldEvent.title}, date=${oldEvent.date}, isRecurring=${oldEvent.isRecurringEvent}');
+                                        if (oldEvent.recurrenceSettings != null) {
+                                          print('[MultiDayView Drag] Recurrence settings: ${oldEvent.recurrenceSettings}');
+                                        }
 
                                         final keyBox = _dayColumnKeys[index].currentContext?.findRenderObject() as RenderBox?;
                                         final box = keyBox ?? context.findRenderObject() as RenderBox;
@@ -558,14 +568,48 @@ class InternalMultiDayViewPage<T extends Object?> extends StatefulWidget {
                                           newEndDate = DateTime(newStart.year, newStart.month, newStart.day);
                                         }
 
-                                        final updated = event.copyWith(
+                                        RecurrenceSettings? updatedRecurrenceSettings;
+                                        if (oldEvent.isRecurringEvent && oldEvent.recurrenceSettings != null) {
+                                          final oldStartDate = (occurrenceDate ?? oldEvent.date).withoutTime;
+                                          final newStartDate = widget.dates[index].withoutTime;
+                                          final startDateDelta = newStartDate.difference(oldStartDate);
+                                          final oldRecurrenceEndDate = oldEvent.recurrenceSettings!.endDate;
+                                          final newRecurrenceEndDate = oldRecurrenceEndDate != null
+                                              ? oldRecurrenceEndDate.add(startDateDelta)
+                                              : null;
+
+                                          List<int>? newWeekdays;
+                                          if (oldEvent.recurrenceSettings!.frequency == RepeatFrequency.weekly) {
+                                            final dayShift = startDateDelta.inDays % 7;
+                                            newWeekdays = oldEvent.recurrenceSettings!.weekdays.map((weekday) {
+                                              return (weekday + dayShift) % 7;
+                                            }).toList();
+                                            print('[MultiDayView Drag] Shifting weekdays by $dayShift');
+                                            print('[MultiDayView Drag] Old weekdays: ${oldEvent.recurrenceSettings!.weekdays}, new: $newWeekdays');
+                                          }
+
+                                          updatedRecurrenceSettings = oldEvent.recurrenceSettings!.copyWith(
+                                            startDate: newStartDate,
+                                            endDate: newRecurrenceEndDate,
+                                            weekdays: newWeekdays,
+                                          );
+
+                                          print('[MultiDayView Drag] Occurrence date: $occurrenceDate');
+                                          print('[MultiDayView Drag] Old recurrence start: $oldStartDate, new: $newStartDate');
+                                          print('[MultiDayView Drag] Old recurrence end: $oldRecurrenceEndDate, new: $newRecurrenceEndDate');
+                                        }
+
+                                        final updated = oldEvent.copyWith(
                                           date: widget.dates[index],
                                           startTime: newStart,
                                           endTime: adjustedNewEnd,
                                           endDate: newEndDate,
+                                          recurrenceSettings: updatedRecurrenceSettings ?? oldEvent.recurrenceSettings,
                                         );
 
-                                        widget.controller.update(event, updated);
+                                        print('[MultiDayView Drag] Updated event: ${updated.title}, date=${updated.date}, isRecurring=${updated.isRecurringEvent}');
+
+                                        widget.controller.update(oldEvent, updated);
                                       },
                                       builder: (context, candidate, rejected) {
                                         return IgnorePointer(

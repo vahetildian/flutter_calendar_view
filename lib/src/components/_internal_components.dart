@@ -544,6 +544,11 @@ class EventGenerator<T extends Object?> extends StatelessWidget {
               'event': events[index].events[0],
               'start': events[index].events[0].startTime,
               'end': events[index].events[0].endTime,
+              'occurrenceDate': date,
+            },
+            onDragStarted: () {
+              final dragEvent = events[index].events[0];
+              print('[EventDrag] Start: ${dragEvent.title}, occurrenceDate=$date, eventDate=${dragEvent.date}');
             },
             feedback: Material(
               color: Colors.transparent,
