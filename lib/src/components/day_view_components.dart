@@ -3,6 +3,7 @@
 // that can be found in the LICENSE file.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 
 import '../../calendar_view.dart';
 
@@ -11,8 +12,14 @@ class RoundedEventTile extends StatelessWidget {
   /// Title of the tile.
   final String title;
 
+  /// HTML content for title (overrides plain text title if provided).
+  final String? titleHtml;
+
   /// Description of the tile.
   final String? description;
+
+  /// HTML content for description (overrides plain text description if provided).
+  final String? descriptionHtml;
 
   /// Background color of tile.
   /// Default color is [Colors.blue]
@@ -53,9 +60,11 @@ class RoundedEventTile extends StatelessWidget {
   const RoundedEventTile({
     Key? key,
     required this.title,
+    this.titleHtml,
     this.padding = EdgeInsets.zero,
     this.margin = EdgeInsets.zero,
     this.description,
+    this.descriptionHtml,
     this.borderRadius = BorderRadius.zero,
     this.totalEvents = 1,
     this.backgroundColor = Colors.blue,
@@ -89,16 +98,27 @@ class RoundedEventTile extends StatelessWidget {
               onDoubleTap: onDoubleTap,
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                child: Text(
-                  title,
-                  style: titleStyle ??
-                      TextStyle(
-                        fontSize: 16,
-                        color: backgroundColor.accent,
+                child: titleHtml != null
+                    ? Html(
+                        data: titleHtml,
+                        style: {
+                          'body': Style(
+                            margin: Margins.zero,
+                            padding: HtmlPaddings.zero,
+                            color: backgroundColor.accent,
+                          ),
+                        },
+                      )
+                    : Text(
+                        title,
+                        style: titleStyle ??
+                            TextStyle(
+                              fontSize: 16,
+                              color: backgroundColor.accent,
+                            ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
               ),
             );
           }
@@ -106,7 +126,9 @@ class RoundedEventTile extends StatelessWidget {
           // Default (full) layout
           final hasTitle = title.isNotEmpty;
           final hasDescription = description?.isNotEmpty ?? false;
-          final spacing = hasTitle && hasDescription
+          final hasTitleHtml = titleHtml?.isNotEmpty ?? false;
+          final hasDescriptionHtml = descriptionHtml?.isNotEmpty ?? false;
+          final spacing = (hasTitle || hasTitleHtml) && (hasDescription || hasDescriptionHtml)
               ? titleDescriptionSpacing
               : 0.0;
 
@@ -118,38 +140,57 @@ class RoundedEventTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (hasTitle)
+                if (hasTitle || hasTitleHtml)
                   Flexible(
                     fit: FlexFit.loose,
-                    child: Text(
-                      title,
-                      style: titleStyle ??
-                          TextStyle(
-                            fontSize: 16,
-                            color: backgroundColor.accent,
+                    child: hasTitleHtml
+                        ? Html(
+                            data: titleHtml,
+                            style: {
+                              'body': Style(
+                                margin: Margins.zero,
+                                padding: HtmlPaddings.zero,
+                                color: backgroundColor.accent,
+                              ),
+                            },
+                          )
+                        : Text(
+                            title,
+                            style: titleStyle ??
+                                TextStyle(
+                                  fontSize: 16,
+                                  color: backgroundColor.accent,
+                                ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
                   ),
                 if (spacing > 0)
                   SizedBox(height: spacing),
-                if (hasDescription)
+                if (hasDescription || hasDescriptionHtml)
                   Flexible(
                     fit: FlexFit.loose,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 4.0),
-                      child: Text(
-                        description!,
-                        style: descriptionStyle ??
-                            TextStyle(
-                              fontSize: 14,
-                              color: backgroundColor.accent.withAlpha(200),
-                            ),
-                        maxLines: null,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
+                    child: hasDescriptionHtml
+                        ? Html(
+                            data: descriptionHtml,
+                            style: {
+                              'body': Style(
+                                margin: Margins.zero,
+                                padding: HtmlPaddings.zero,
+                                color: backgroundColor.accent.withAlpha(200),
+                              ),
+                            },
+                          )
+                        : Text(
+                            description ?? '',
+                            style: descriptionStyle ??
+                                TextStyle(
+                                  fontSize: 14,
+                                  color: backgroundColor.accent.withAlpha(200),
+                                ),
+                            maxLines: null,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                   ),
                 if (totalEvents > 1)
                   Flexible(
