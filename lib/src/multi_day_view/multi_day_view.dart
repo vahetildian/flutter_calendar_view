@@ -1107,10 +1107,11 @@ class MultiDayViewState<T extends Object?> extends State<MultiDayView<T>> {
     } else if (_currentWeek.isAfter(_maxDate)) {
       _currentWeek = _maxDate;
     }
-    _currentStartDate = _currentWeek;
+    _currentIndex = _getPageIndexForDate(_currentWeek);
+    // Ensure _currentStartDate matches what PageView will display
+    _currentStartDate = _pageStartDateForIndex(_currentIndex);
     _currentEndDate = _currentStartDate
         .add(Duration(days: (widget.daysInView - 1)));
-    _currentIndex = _getPageIndexForDate(_currentWeek);
   }
 
   /// Sets the minimum and maximum dates for current view.
