@@ -105,8 +105,12 @@ class RoundedEventTile extends StatelessWidget {
                           'body': Style(
                             margin: Margins.zero,
                             padding: HtmlPaddings.zero,
+                            fontSize: FontSize(16.0),
                             color: backgroundColor.accent,
                           ),
+                          'b': Style(fontWeight: FontWeight.bold),
+                          'i': Style(fontStyle: FontStyle.italic),
+                          'u': Style(textDecoration: TextDecoration.underline),
                         },
                       )
                     : Text(
@@ -150,8 +154,12 @@ class RoundedEventTile extends StatelessWidget {
                               'body': Style(
                                 margin: Margins.zero,
                                 padding: HtmlPaddings.zero,
+                                fontSize: FontSize(16.0),
                                 color: backgroundColor.accent,
                               ),
+                              'b': Style(fontWeight: FontWeight.bold),
+                              'i': Style(fontStyle: FontStyle.italic),
+                              'u': Style(textDecoration: TextDecoration.underline),
                             },
                           )
                         : Text(
@@ -177,8 +185,13 @@ class RoundedEventTile extends StatelessWidget {
                               'body': Style(
                                 margin: Margins.zero,
                                 padding: HtmlPaddings.zero,
+                                fontSize: FontSize(14.0),
                                 color: backgroundColor.accent.withAlpha(200),
                               ),
+                              'b': Style(fontWeight: FontWeight.bold),
+                              'i': Style(fontStyle: FontStyle.italic),
+                              'u': Style(textDecoration: TextDecoration.underline),
+                              'br': Style(height: Height(0)),
                             },
                           )
                         : Text(
