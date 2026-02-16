@@ -37,6 +37,9 @@ class RoundedEventTile extends StatelessWidget {
   /// Style for description
   final TextStyle? descriptionStyle;
 
+  /// Vertical spacing between title and description.
+  final double titleDescriptionSpacing;
+
   /// Tap callback for the tile.
   final VoidCallback? onTap;
 
@@ -58,6 +61,7 @@ class RoundedEventTile extends StatelessWidget {
     this.backgroundColor = Colors.blue,
     this.titleStyle,
     this.descriptionStyle,
+    this.titleDescriptionSpacing = 0.0,
     this.onTap,
     this.onLongPress,
     this.onDoubleTap,
@@ -100,6 +104,12 @@ class RoundedEventTile extends StatelessWidget {
           }
 
           // Default (full) layout
+          final hasTitle = title.isNotEmpty;
+          final hasDescription = description?.isNotEmpty ?? false;
+          final spacing = hasTitle && hasDescription
+              ? titleDescriptionSpacing
+              : 0.0;
+
           return InkWell(
             onTap: onTap,
             onLongPress: onLongPress,
@@ -108,7 +118,7 @@ class RoundedEventTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (title.isNotEmpty)
+                if (hasTitle)
                   Flexible(
                     fit: FlexFit.loose,
                     child: Text(
@@ -122,7 +132,9 @@ class RoundedEventTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                if (description?.isNotEmpty ?? false)
+                if (spacing > 0)
+                  SizedBox(height: spacing),
+                if (hasDescription)
                   Flexible(
                     fit: FlexFit.loose,
                     child: Padding(
